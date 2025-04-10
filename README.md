@@ -1,5 +1,5 @@
-#### ФИО: Ковалев Андрей Вахтангович
-#### Почта: Dru0998@yandex.ru
+#### Full name: Kovalev Andrew Vakhtangovich
+#### Email: Dru0998@yandex.ru
 #### Telegram: @HlupHlyp
 <h1 align="left">Hey 👋 What's up?</h1>
 
