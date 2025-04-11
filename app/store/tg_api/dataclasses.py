@@ -1,18 +1,18 @@
 from dataclasses import field
-from typing import ClassVar, Type, List, Optional
+from typing import ClassVar
 
+from marshmallow import EXCLUDE, Schema
 from marshmallow_dataclass import dataclass
-from marshmallow import Schema, EXCLUDE
 
 
 @dataclass
 class Chat:
     id: int
     type: str
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    username: Optional[str] = None
-    title: Optional[str] = None
+    first_name: str | None = None
+    last_name: str | None = None
+    username: str | None = None
+    title: str | None = None
 
     class Meta:
         unknown = EXCLUDE
@@ -22,9 +22,9 @@ class Chat:
 class MessageFrom:
     id: int
     first_name: str
-    last_name: Optional[str]
-    username: str
-    chat: Optional[Chat]
+    last_name: str | None = None
+    username: str | None = None
+    chat: Chat | None = None
 
     class Meta:
         unknown = EXCLUDE
@@ -35,8 +35,8 @@ class Message:
     message_id: int
     from_: MessageFrom = field(metadata={"data_key": "from"})
     chat: Chat
-    text: Optional[str] = None
-    data: Optional[str] = None
+    text: str | None = None
+    data: str | None = None
 
     class Meta:
         unknown = EXCLUDE
@@ -45,8 +45,8 @@ class Message:
 @dataclass
 class CallbackQuery:
     id: int
-    message: Optional[Message] = None
-    data: Optional[str] = None
+    message: Message | None = None
+    data: str | None = None
 
     class Meta:
         unknown = EXCLUDE
@@ -55,9 +55,9 @@ class CallbackQuery:
 @dataclass
 class UpdateObj:
     update_id: int
-    message: Optional[Message] = None
-    edited_message: Optional[Message] = None
-    callback_query: Optional[CallbackQuery] = None
+    message: Message | None = None
+    edited_message: Message | None = None
+    callback_query: CallbackQuery | None = None
 
     class Meta:
         unknown = EXCLUDE
@@ -66,9 +66,9 @@ class UpdateObj:
 @dataclass
 class GetUpdatesResponse:
     ok: bool
-    result: List[UpdateObj]
+    result: list[UpdateObj]
 
-    Schema: ClassVar[Type[Schema]] = Schema
+    Schema: ClassVar[type[Schema]] = Schema
 
     class Meta:
         unknown = EXCLUDE
@@ -79,7 +79,7 @@ class SendMessageResponse:
     ok: bool
     result: Message
 
-    Schema: ClassVar[Type[Schema]] = Schema
+    Schema: ClassVar[type[Schema]] = Schema
 
     class Meta:
         unknown = EXCLUDE

@@ -1,5 +1,5 @@
 import aiohttp
-from typing import Optional
+
 from app.store.tg_api.dataclasses import GetUpdatesResponse, SendMessageResponse
 
 # from typing import Optional
@@ -23,7 +23,7 @@ class TgClient:
                 return await resp.json()
 
     async def get_updates(
-        self, offset: Optional[int] = None, timeout: int = 0
+        self, offset: int | None = None, timeout: int = 0
     ) -> dict:
         url = self.get_url("getUpdates")
         params = {}
@@ -36,7 +36,7 @@ class TgClient:
                 return await resp.json()
 
     async def get_updates_in_objects(
-        self, offset: Optional[int] = None, timeout: int = 0
+        self, offset: int | None = None, timeout: int = 0
     ) -> GetUpdatesResponse:
         res_dict = await self.get_updates(offset=offset, timeout=timeout)
         return GetUpdatesResponse.Schema().load(res_dict)
