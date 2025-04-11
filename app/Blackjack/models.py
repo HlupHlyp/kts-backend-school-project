@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from sqlalchemy import (
     BigInteger,
@@ -29,10 +29,12 @@ class GameSessionModel(BaseModel):
     )
     num_users = Column(BigInteger, nullable=True)
     status_change_time = Column(DateTime, nullable=False)
-    players: Mapped[list["PlayerModel"]] = relationship(
-        "PlayerModel",
-        back_populates="game_session",
-        cascade="all, delete-orphan",
+    players: Mapped[list["PlayerModel"]] = field(
+        default_factory=relationship(
+            "PlayerModel",
+            back_populates="game_session",
+            cascade="all, delete-orphan",
+        )
     )
 
 
@@ -40,8 +42,10 @@ class GameSessionModel(BaseModel):
 class PlayerModel(BaseModel):
     __tablename__ = "players"
     id = Column(BigInteger, primary_key=True)
-    session_id: Mapped[int] = mapped_column(
-        ForeignKey("sessions.id", ondelete="CASCADE")
+    session_id: Mapped[int] = field(
+        default_factory=mapped_column(
+            ForeignKey("sessions.id", ondelete="CASCADE")
+        )
     )
     status = Column(
         String(100),
@@ -53,15 +57,19 @@ class PlayerModel(BaseModel):
     )
     tg_id = Column(BigInteger, nullable=False, index=True, unique=True)
     score = Column(BigInteger, nullable=False)
-    game_session: Mapped[list["GameSessionModel"]] = relationship(
-        "GameSessionModel",
-        back_populates="players",
-        cascade="all, delete-orphan",
+    game_session: Mapped[list["GameSessionModel"]] = field(
+        default_factory=relationship(
+            "GameSessionModel",
+            back_populates="players",
+            cascade="all, delete-orphan",
+        )
     )
-    hands: Mapped[list["HandModel"]] = relationship(
-        "HandModel",
-        back_populates="player",
-        cascade="all, delete-orphan",
+    hands: Mapped[list["HandModel"]] = field(
+        default_factory=relationship(
+            "HandModel",
+            back_populates="player",
+            cascade="all, delete-orphan",
+        )
     )
 
 
@@ -69,19 +77,25 @@ class PlayerModel(BaseModel):
 class HandModel(BaseModel):
     __tablename__ = "hands"
     id = Column(BigInteger, primary_key=True)
-    user2session_id = Mapped[int] = mapped_column(
-        ForeignKey("user2session.id", ondelete="CASCADE")
+    player_id: Mapped[int] = field(
+        default_factory=mapped_column(
+            ForeignKey("players.id", ondelete="CASCADE")
+        )
     )
     rate = Column(BigInteger, nullable=False)
-    player: Mapped[list["PlayerModel"]] = relationship(
-        "PlayerModel",
-        back_populates="hands",
-        cascade="all, delete-orphan",
+    player: Mapped[list["PlayerModel"]] = field(
+        default_factory=relationship(
+            "PlayerModel",
+            back_populates="hands",
+            cascade="all, delete-orphan",
+        )
     )
-    cards: Mapped[list["CardModel"]] = relationship(
-        "CardModel",
-        back_populates="hand",
-        cascade="all, delete-orphan",
+    cards: Mapped[list["CardModel"]] = field(
+        default_factory=relationship(
+            "CardModel",
+            back_populates="hand",
+            cascade="all, delete-orphan",
+        )
     )
 
 
@@ -114,11 +128,15 @@ class CardModel(BaseModel):
         ),
         nullable=False,
     )
-    hand_id = Mapped[int] = mapped_column(
-        ForeignKey("user2session.id", ondelete="CASCADE"), nullable=True
+    hand_id: Mapped[int] = field(
+        default_factory=mapped_column(
+            ForeignKey("user2session.id", ondelete="CASCADE"), nullable=True
+        )
     )
-    player: Mapped[list["HandModel"]] = relationship(
-        "HandModel",
-        back_populates="cards",
-        cascade="all, delete-orphan",
+    player: Mapped[list["HandModel"]] = field(
+        default_factory=relationship(
+            "HandModel",
+            back_populates="cards",
+            cascade="all, delete-orphan",
+        )
     )
