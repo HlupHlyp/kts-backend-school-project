@@ -1,0 +1,37 @@
+from typing import TYPE_CHECKING, Any
+
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.orm import DeclarativeBase
+
+from app.store.database.sqlalchemy_base import BaseModel
+
+if TYPE_CHECKING:
+    from app.web.app import Application
+
+
+class Database:
+    def __init__(self, app: "Application") -> None:
+        self.app = app
+
+        self.engine: AsyncEngine | None = None
+        self._db: type[DeclarativeBase] = BaseModel
+        self.session: async_sessionmaker[AsyncSession] | None = None
+
+    def make_db_url(self) -> str:
+        return str(
+            f"postgresql+asyncpg://{self.app.config.database.user}:{self.app.config.database.password}@0.0.0.0/{self.app.config.database.database}"
+        )
+
+    async def connect(self, *args: Any, **kwargs: Any) -> None:
+        self.engine = create_async_engine(self.make_db_url())
+        self.session = async_sessionmaker(
+            self.engine, class_=AsyncSession, expire_on_commit=False
+        )
+
+    async def disconnect(self, *args: Any, **kwargs: Any) -> None:
+        await self.engine.dispose()
