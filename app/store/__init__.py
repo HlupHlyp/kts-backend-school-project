@@ -11,12 +11,9 @@ if typing.TYPE_CHECKING:
 
 class Store:
     def __init__(self, app: "Application"):
-        # from app.store.admin.accessor import AdminAccessor
         from app.store.bot.manager import BotManager
         from app.store.tg_api.accessor import TgApiAccessor
 
-        # self.quizzes = QuizAccessor(app)
-        # self.admins = AdminAccessor(app)
         self.Tg_api = TgApiAccessor(app, token=app.config.bot.token)
         self.bots_manager = BotManager(app)
 
