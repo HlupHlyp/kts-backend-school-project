@@ -1,0 +1,60 @@
+{
+    "player_num_setting": {
+        "text": "Выберите сколько игроков вы хотите пригласить?",
+        "markup": {
+            "inline_keyboard": [
+                [
+                    {
+                        "text": "1",
+                        "callback_data": "num_players/1"
+                    },
+                    {
+                        "text": "2",
+                        "callback_data": "num_players/2"
+                    },
+                    {
+                        "text": "3",
+                        "callback_data": "num_players/3"
+                    },
+                    {
+                        "text": "4",
+                        "callback_data": "num_players/4"
+                    },
+                    {
+                        "text": "5",
+                        "callback_data": "num_players/5"
+                    },
+                    {
+                        "text": "6",
+                        "callback_data": "num_players/6"
+                    }
+                ]
+            ]
+        }
+    },
+    "inviting": {
+        "text": "Чтобы присоединиться нажмите на кнопку",
+        "markup": {
+            "inline_keyboard": [
+                [
+                    {
+                        "text": "Присоединиться",
+                        "callback_data": "connect/1"
+                    }
+                ]
+            ]
+        }
+    },
+    "starting_game": {
+        "text": "Начинаем",
+        "markup": {}
+    },
+    "stopping_game": {
+        "text": "Игра завершена принудительно",
+        "markup": {}
+    },
+    "session_already_started": {
+        "text": "Игра уже началась, чтобы начать игру заново необходимо ее завершить",
+        "markup": {}
+    }
+}

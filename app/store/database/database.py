@@ -23,9 +23,7 @@ class Database:
         self.session: async_sessionmaker[AsyncSession] | None = None
 
     def make_db_url(self) -> str:
-        return str(
-            f"postgresql+asyncpg://{self.app.config.database.user}:{self.app.config.database.password}@0.0.0.0/{self.app.config.database.database}"
-        )
+        return f"postgresql+asyncpg://{self.app.config.database.user}:{self.app.config.database.password}@0.0.0.0/{self.app.config.database.database}"
 
     async def connect(self, *args: Any, **kwargs: Any) -> None:
         self.engine = create_async_engine(self.make_db_url())

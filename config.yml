@@ -6,7 +6,7 @@ database:
   port: 5432
   user: hluphlyp
   password: chpocpupoc
-  database: bot
+  database: blackjack
 bot:
   token: 6893332938:AAEvs3DyR1-nL2b_Xzxvgf821oA_CAc1T6k
 

@@ -1,10 +1,8 @@
-# from dataclasses import dataclass, field
-
 from sqlalchemy import (
+    JSON,
     BigInteger,
     CheckConstraint,
     Column,
-    # DateTime,
     ForeignKey,
     String,
 )
@@ -30,7 +28,6 @@ class GameSessionModel(BaseModel):
     players: Mapped[list["PlayerModel"]] = relationship(
         "PlayerModel",
         back_populates="game_session",
-        cascade="all, delete-orphan",
     )
 
 
@@ -53,59 +50,5 @@ class PlayerModel(BaseModel):
     game_session: Mapped[list["GameSessionModel"]] = relationship(
         "GameSessionModel",
         back_populates="players",
-        cascade="all, delete-orphan",
     )
-    hands: Mapped[list["HandModel"]] = relationship(
-        "HandModel",
-        back_populates="player",
-        cascade="all, delete-orphan",
-    )
-
-
-class HandModel(BaseModel):
-    __tablename__ = "hands"
-    id = Column(BigInteger, primary_key=True)
-    player_id: Mapped[int] = mapped_column(
-        ForeignKey("players.id", ondelete="CASCADE")
-    )
-    rate = Column(BigInteger, nullable=False)
-    player: Mapped[list["PlayerModel"]] = relationship(
-        "PlayerModel",
-        back_populates="hands",
-        cascade="all, delete-orphan",
-    )
-    cards: Mapped[list["CardModel"]] = relationship(
-        "CardModel",
-        back_populates="hand",
-        cascade="all, delete-orphan",
-    )
-
-
-class CardModel(BaseModel):
-    __tablename__ = "cards"
-    id = Column(BigInteger, primary_key=True)
-    score = Column(BigInteger, nullable=False, unique=True)
-    name = Column(
-        String(100),
-        CheckConstraint(
-            "name IN ('Валет','Дама','Король','Туз') ",
-            name="check_card_name",
-        ),
-        nullable=True,
-    )
-    suit = Column(
-        String(100),
-        CheckConstraint(
-            "suit IN ('♥','♦','♣','♠')",
-            name="check_card_suit",
-        ),
-        nullable=False,
-    )
-    hand_id: Mapped[int] = mapped_column(
-        ForeignKey("hands.id", ondelete="CASCADE"), nullable=True
-    )
-    player: Mapped[list["HandModel"]] = relationship(
-        "HandModel",
-        back_populates="cards",
-        cascade="all, delete-orphan",
-    )
+    right_hand = Column(JSON, nullable=True)

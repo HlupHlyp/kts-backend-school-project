@@ -2,9 +2,6 @@ import aiohttp
 
 from app.store.tg_api.dataclasses import GetUpdatesResponse, SendMessageResponse
 
-# from typing import Optional
-# from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-
 
 class TgClient:
     def __init__(
@@ -42,21 +39,10 @@ class TgClient:
         return GetUpdatesResponse.Schema().load(res_dict)
 
     async def send_message(
-        self, chat_id: int, text: str
+        self, chat_id: int, text: str, markup: dict | None
     ) -> SendMessageResponse:
         url = self.get_url("sendMessage")
-        payload = {
-            "chat_id": chat_id,
-            "text": text,
-            "reply_markup": {
-                "inline_keyboard": [
-                    [
-                        {"text": "Кнопка 1", "callback_data": "data_1"},
-                        {"text": "Кнопка 2", "callback_data": "data_2"},
-                    ],
-                ],
-            },
-        }
+        payload = {"chat_id": chat_id, "text": text, "reply_markup": markup}
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=payload) as resp:
                 res_dict = await resp.json()

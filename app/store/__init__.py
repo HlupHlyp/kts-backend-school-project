@@ -1,6 +1,3 @@
-# from .store import Store
-
-# __all__ = ("Store",)
 import typing
 
 from app.store.database.database import Database
@@ -11,11 +8,13 @@ if typing.TYPE_CHECKING:
 
 class Store:
     def __init__(self, app: "Application"):
+        from app.store.blackjack.accessor import BlackjackAccessor
         from app.store.bot.manager import BotManager
         from app.store.tg_api.accessor import TgApiAccessor
 
         self.Tg_api = TgApiAccessor(app, token=app.config.bot.token)
         self.bots_manager = BotManager(app)
+        self.blackjack = BlackjackAccessor(app)
 
 
 def setup_store(app: "Application"):

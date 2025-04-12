@@ -29,7 +29,6 @@ class TgApiAccessor(BaseAccessor):
         updates = await self.tg_client.get_updates_in_objects(
             offset=self.offset, timeout=25
         )
-        # print(updates)
         for update in updates.result:
             self.offset = update.update_id + 1
         await self.app.store.bots_manager.handle_updates(updates)
