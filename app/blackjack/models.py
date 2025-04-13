@@ -2,9 +2,9 @@ from sqlalchemy import (
     JSON,
     BigInteger,
     CheckConstraint,
-    Column,
     ForeignKey,
     String,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -13,9 +13,11 @@ from app.store.database.sqlalchemy_base import BaseModel
 
 class GameSessionModel(BaseModel):
     __tablename__ = "game_sessions"
-    id = Column(BigInteger, primary_key=True)
-    chat_id = Column(BigInteger, nullable=False, index=True, unique=True)
-    status = Column(
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    chat_id: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, index=True, unique=True
+    )
+    status: Mapped[str] = mapped_column(
         String(100),
         CheckConstraint(
             "status IN ('sleeping','waiting_for_num','waiting_for_users',"
@@ -24,7 +26,7 @@ class GameSessionModel(BaseModel):
         ),
         nullable=False,
     )
-    num_users = Column(BigInteger, nullable=True)
+    num_users: Mapped[int] = mapped_column(BigInteger, nullable=True)
     players: Mapped[list["PlayerModel"]] = relationship(
         "PlayerModel",
         back_populates="game_session",
@@ -33,11 +35,11 @@ class GameSessionModel(BaseModel):
 
 class PlayerModel(BaseModel):
     __tablename__ = "players"
-    id = Column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     game_session_id: Mapped[int] = mapped_column(
         ForeignKey("game_sessions.id", ondelete="CASCADE")
     )
-    status = Column(
+    status: Mapped[str] = mapped_column(
         String(100),
         CheckConstraint(
             "status IN ('sleeping','active','polling', 'assembled', 'dealer') ",
@@ -45,10 +47,16 @@ class PlayerModel(BaseModel):
         ),
         nullable=False,
     )
-    tg_id = Column(BigInteger, nullable=False, index=True, unique=True)
-    score = Column(BigInteger, nullable=False)
+    tg_id: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, index=True, unique=True
+    )
     game_session: Mapped[list["GameSessionModel"]] = relationship(
         "GameSessionModel",
         back_populates="players",
     )
-    right_hand = Column(JSON, nullable=True)
+    right_hand: Mapped[dict] = mapped_column(JSON, nullable=True)
+    balance: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    bet: Mapped[int] = mapped_column(BigInteger, nullable=True)
+    __table_args__ = (
+        UniqueConstraint("game_session_id", "tg_id", name="session_tg_unique"),
+    )

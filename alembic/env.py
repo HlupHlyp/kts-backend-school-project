@@ -3,7 +3,7 @@ from logging.config import fileConfig
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import async_engine_from_config, create_async_engine
 from app.store.database.sqlalchemy_base import BaseModel
 
 from alembic import context
@@ -41,7 +41,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("postgresql+asyncpg://hluphlyp:chpocpupoc@0.0.0.0/blackjack")
+    url = "postgresql+asyncpg://hluphlyp:chpocpupoc@0.0.0.0/blackjack"
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -66,9 +66,8 @@ async def run_async_migrations() -> None:
 
     """
 
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    connectable = create_async_engine(
+        "postgresql+asyncpg://hluphlyp:chpocpupoc@0.0.0.0/blackjack", 
         poolclass=pool.NullPool,
     )
 
