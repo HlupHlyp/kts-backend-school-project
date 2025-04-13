@@ -1,8 +1,8 @@
-from app.store.tg_api.dataclasses import UpdateObj
 import typing
 
+from app.store.tg_api.dataclasses import UpdateObj
+
 if typing.TYPE_CHECKING:
-    from app.web.app import Application
     from app.store.bot.manager import BotManager
 
 

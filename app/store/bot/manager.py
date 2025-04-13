@@ -10,9 +10,9 @@ if typing.TYPE_CHECKING:
     from app.web.app import Application
 
 from app.store.bot.handlers import (
+    players_num_handler,
     start_handler,
     stop_handler,
-    players_num_handler,
 )
 
 
