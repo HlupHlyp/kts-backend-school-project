@@ -3,10 +3,17 @@ import os
 import typing
 from logging import getLogger
 
+from app.store.bot.router import BotRouter
 from app.store.tg_api.dataclasses import UpdateObj
 
 if typing.TYPE_CHECKING:
     from app.web.app import Application
+
+from app.store.bot.handlers import (
+    start_handler,
+    stop_handler,
+    players_num_handler,
+)
 
 
 class BotManager:
@@ -19,40 +26,33 @@ class BotManager:
         )
         with open(path, "r") as file:
             self.reply_templates = json.load(file)
+        self.router = BotRouter(self)
+        self.router.create_route(
+            trigger="start@SC17854_bot", is_command=True, action=start_handler
+        )
+        self.router.create_route(
+            trigger="stop@SC17854_bot", is_command=True, action=stop_handler
+        )
+        self.router.create_route(
+            trigger="num_players", is_command=False, action=players_num_handler
+        )
 
     @property
-    def tg_client(self):
-        return self.app.store.Tg_api.tg_client
+    def send_message(self):
+        return self.app.store.Tg_api.tg_client.send_message
+
+    @property
+    def blackjack(self):
+        return self.app.store.blackjack
+
+    async def send_reply(self, reply_dict_key: dict, chat_id):
+        reply_template = self.reply_templates[reply_dict_key]
+        await self.send_message(
+            chat_id=chat_id,
+            text=reply_template["text"],
+            markup=reply_template["markup"],
+        )
 
     async def handle_updates(self, updates: list[UpdateObj]):
         for update in updates.result:
-            reply = False
-            reply_dict_key = ""
-            if update.message is not None:
-                chat_id = update.message.chat.id
-                if update.message.text == "/start@SC17854_bot":
-                    g_session = await self.app.store.blackjack.create_g_session(
-                        chat_id
-                    )
-                    if g_session.status != "sleeping":
-                        reply_dict_key = True, "session_already_started"
-                    else:
-                        reply, reply_dict_key = True, "player_num_setting"
-
-                elif update.message.text == "/stop@SC17854_bot":
-                    reply = True
-                    reply_dict_key = "stopping_game"
-
-            elif update.callback_query is not None:
-                if "num_players" in update.callback_query.data:
-                    chat_id = update.callback_query.message.chat.id
-                    reply = True
-                    reply_dict_key = "inviting"
-
-            if reply:
-                reply_template = self.reply_templates[reply_dict_key]
-                await self.tg_client.send_message(
-                    chat_id=chat_id,
-                    text=reply_template["text"],
-                    markup=reply_template["markup"],
-                )
+            await self.router.navigate(update)
