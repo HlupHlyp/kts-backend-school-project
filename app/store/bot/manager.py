@@ -45,7 +45,7 @@ class BotManager:
     def blackjack(self):
         return self.app.store.blackjack
 
-    async def send_reply(self, reply_dict_key: dict, chat_id):
+    async def send_reply(self, reply_dict_key: dict, chat_id: int):
         reply_template = self.reply_templates[reply_dict_key]
         await self.send_message(
             chat_id=chat_id,

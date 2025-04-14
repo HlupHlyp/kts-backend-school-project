@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any
 
+from sqlalchemy import URL
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -22,8 +23,14 @@ class Database:
         self._db: type[DeclarativeBase] = BaseModel
         self.session: async_sessionmaker[AsyncSession] | None = None
 
-    def make_db_url(self) -> str:
-        return f"postgresql+asyncpg://{self.app.config.database.user}:{self.app.config.database.password}@0.0.0.0/{self.app.config.database.database}"
+    def make_db_url(self) -> URL:
+        return URL.create(
+            database=self.app.config.database.database,
+            username=self.app.config.database.user,
+            password=self.app.config.database.password,
+            host="0.0.0.0",
+            drivername="postgresql+asyncpg",
+        )
 
     async def connect(self, *args: Any, **kwargs: Any) -> None:
         self.engine = create_async_engine(self.make_db_url())

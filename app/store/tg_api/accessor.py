@@ -26,6 +26,9 @@ class TgApiAccessor(BaseAccessor):
             await self.poller.stop()
 
     async def poll(self):
+        updates = await self.tg_client.get_updates(
+            offset=self.offset, timeout=25
+        )
         updates = await self.tg_client.get_updates_in_objects(
             offset=self.offset, timeout=25
         )
