@@ -17,8 +17,8 @@ class AcceptedGiftTypes:
 class Chat:
     id: int
     type: str
-    all_members_are_administrators: bool
-    accepted_gift_types: AcceptedGiftTypes
+    all_members_are_administrators: bool | None = None
+    accepted_gift_types: AcceptedGiftTypes | None = None
     first_name: str | None = None
     last_name: str | None = None
     username: str | None = None
@@ -55,6 +55,15 @@ class ReplyMarkup:
 
 
 @dataclass
+class Document:
+    file_name: str
+    mime_type: str
+    file_id: str
+    file_unique_id: str
+    file_size: int
+
+
+@dataclass
 class Message:
     message_id: int
     from_: MessageFrom = field(metadata={"data_key": "from"})
@@ -64,6 +73,7 @@ class Message:
     text: str | None = None
     data: str | None = None
     reply_markup: ReplyMarkup | None = None
+    document: Document | None = None
 
 
 @dataclass
@@ -84,16 +94,17 @@ class UpdateObj:
 
 
 @dataclass
-class GetUpdatesResponse:
-    ok: bool
-    result: list[UpdateObj]
-
+class Base:
     Schema: ClassVar[type[Schema]] = Schema
 
 
 @dataclass
-class SendMessageResponse:
+class GetUpdatesResponse(Base):
+    ok: bool
+    result: list[UpdateObj]
+
+
+@dataclass
+class SendMessageResponse(Base):
     ok: bool
     result: Message
-
-    Schema: ClassVar[type[Schema]] = Schema

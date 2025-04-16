@@ -1,7 +1,6 @@
 from marshmallow import Schema, fields
 
 
-class GameSessionModel(Schema):
-    __tablename__ = "game_sessions"
+class GameSessionSchema(Schema):
     id = fields.Int(required=False)
     chat_id = fields.Int(required=True)

@@ -1,7 +1,9 @@
 import typing
 
+import aiohttp
+
 from app.base.base_accessor import BaseAccessor
-from app.clients.tg import TgClient
+from app.store.tg_api.dataclasses import GetUpdatesResponse
 from app.store.tg_api.poller import Poller
 
 if typing.TYPE_CHECKING:
@@ -11,9 +13,26 @@ if typing.TYPE_CHECKING:
 class TgApiAccessor(BaseAccessor):
     def __init__(self, app: "Application", token: str, *args, **kwargs):
         super().__init__(app, *args, **kwargs)
-        self.tg_client = TgClient(token)
         self.poller: Poller | None = None
         self.offset: int | None = None
+        self.base_url = f"https://api.telegram.org/bot{token}/"
+
+    def get_url(self, method: str) -> str:
+        return f"{self.base_url}{method}"
+
+    async def get_updates_in_objects(
+        self, offset: int | None = None, timeout: int = 0
+    ) -> GetUpdatesResponse:
+        url = self.get_url("getUpdates")
+        params, res_dict = {}, {}
+        if offset:
+            params["offset"] = offset
+        if timeout:
+            params["timeout"] = timeout
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params) as resp:
+                res_dict = await resp.json()
+        return GetUpdatesResponse.Schema().load(res_dict)
 
     async def connect(self, app: "Application") -> None:
         self.offset = 0
@@ -25,11 +44,8 @@ class TgApiAccessor(BaseAccessor):
         if self.poller:
             await self.poller.stop()
 
-    async def poll(self):
-        updates = await self.tg_client.get_updates(
-            offset=self.offset, timeout=25
-        )
-        updates = await self.tg_client.get_updates_in_objects(
+    async def poll(self) -> None:
+        updates = await self.get_updates_in_objects(
             offset=self.offset, timeout=25
         )
         for update in updates.result:

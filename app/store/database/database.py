@@ -28,7 +28,7 @@ class Database:
             database=self.app.config.database.database,
             username=self.app.config.database.user,
             password=self.app.config.database.password,
-            host="0.0.0.0",
+            host=self.app.config.database.host,
             drivername="postgresql+asyncpg",
         )
 

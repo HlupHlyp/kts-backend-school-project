@@ -1,10 +1,12 @@
 import asyncio
 from logging.config import fileConfig
+import os, yaml
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config, create_async_engine
 from app.store.database.sqlalchemy_base import BaseModel
+from app.web.config import Config, DatabaseConfig
 
 from alembic import context
 
@@ -41,7 +43,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = "postgresql+asyncpg://hluphlyp:chpocpupoc@0.0.0.0/blackjack"
+    url = "postgresql+asyncpg://postgres:password@localhost/database"
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -65,9 +67,12 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
 
     """
+    with open("/home/hluphlyp/kts-backend-school-project/config.yml", "r") as f:
+        raw_config = yaml.safe_load(f)
+    database=DatabaseConfig(**raw_config["database"])
 
     connectable = create_async_engine(
-        "postgresql+asyncpg://hluphlyp:chpocpupoc@0.0.0.0/blackjack", 
+        f"postgresql+asyncpg://{database.user}:{database.password}@{database.host}/{database.database}", 
         poolclass=pool.NullPool,
     )
 

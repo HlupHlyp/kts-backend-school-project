@@ -12,7 +12,7 @@ class Store:
         from app.store.bot.manager import BotManager
         from app.store.tg_api.accessor import TgApiAccessor
 
-        self.Tg_api = TgApiAccessor(app, token=app.config.bot.token)
+        self.tg_api = TgApiAccessor(app, token=app.config.bot.token)
         self.bots_manager = BotManager(app)
         self.blackjack = BlackjackAccessor(app)
 

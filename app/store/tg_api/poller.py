@@ -12,7 +12,7 @@ class Poller:
 
     def _done_callback(self, result: Future) -> None:
         if result.exception():
-            self.store.Tg_api.app.logger.exception(
+            self.store.tg_api.app.logger.exception(
                 "poller stopped with exception", exc_info=result.exception()
             )
         if self.is_running:
@@ -31,4 +31,4 @@ class Poller:
 
     async def poll(self) -> None:
         while self.is_running:
-            await self.store.Tg_api.poll()
+            await self.store.tg_api.poll()
