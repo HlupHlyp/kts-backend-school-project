@@ -55,12 +55,76 @@ class ReplyMarkup:
 
 
 @dataclass
-class Document:
-    file_name: str
-    mime_type: str
+class File:
     file_id: str
     file_unique_id: str
     file_size: int
+
+
+@dataclass
+class Document(File):
+    file_name: str
+    mime_type: str
+
+
+@dataclass
+class Photo(File):
+    width: int
+    height: int
+
+
+@dataclass
+class Voice(File):
+    duration: int
+    mime_type: str
+
+
+@dataclass
+class Thumbnail(File):
+    width: int
+    height: int
+
+
+@dataclass
+class VideoNote(File):
+    duration: int
+    thumbnail: Thumbnail
+    thumb: Thumbnail
+    length: int
+
+
+@dataclass
+class Sticker(File):
+    width: int
+    height: int
+    emoji: str
+    set_name: str
+    is_animated: bool
+    is_video: bool
+    type: str
+    thumbnail: Thumbnail
+    thumb: Thumbnail
+
+
+@dataclass
+class Animation(Document, Photo, File):
+    duration: int
+
+
+@dataclass
+class Video(VideoNote, Photo):
+    mime_type: str | None = None
+    file_name: str | None = None
+    length: int | None = None
+
+
+@dataclass
+class NewParticipant:
+    id: int
+    is_bot: bool
+    first_name: str
+    username: str
+    last_name: str | None = None
 
 
 @dataclass
@@ -69,11 +133,23 @@ class Message:
     from_: MessageFrom = field(metadata={"data_key": "from"})
     chat: Chat
     date: int
-    entities: list[Entity] | None
+    entities: list[Entity] | None = None
     text: str | None = None
     data: str | None = None
     reply_markup: ReplyMarkup | None = None
     document: Document | None = None
+    photo: list[Photo] | None = None
+    voice: Voice | None = None
+    video_note: VideoNote | None = None
+    sticker: Sticker | None = None
+    animation: Animation | None = None
+    video: Video | None = None
+    new_chat_participant: NewParticipant | None = None
+    new_chat_member: NewParticipant | None = None
+    new_chat_members: list[NewParticipant] | None = None
+    left_chat_participant: NewParticipant | None = None
+    left_chat_member: NewParticipant | None = None
+    edit_date: int | None = None
 
 
 @dataclass

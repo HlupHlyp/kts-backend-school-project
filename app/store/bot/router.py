@@ -1,5 +1,6 @@
 import typing
 from collections.abc import Callable
+import aiohttp
 
 from app.store.bot.dataclasses import Action, Route
 from app.store.tg_api.dataclasses import UpdateObj
@@ -26,7 +27,9 @@ class BotRouter:
             )
         )
 
-    async def navigate(self, update: UpdateObj) -> None:
+    async def navigate(
+        self, update: UpdateObj
+    ) -> None:
         # Бот реагирует только на команды и нажатия на кнопки.
         # Routes делятся на посвященные коммандам и кнопкам.
         # Команды начинаюся с /, а вызовы кнопок идут без префикса.

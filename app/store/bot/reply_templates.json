@@ -82,7 +82,11 @@
             "name": "session_already_started",
             "content": {
                 "text": "Игра уже началась, чтобы начать игру заново необходимо ее завершить",
-                "markup": {}
+                "markup": {
+                    "inline_keyboard": [
+                        []
+                    ]
+                }
             }
         }
     ]

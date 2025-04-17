@@ -1,27 +1,44 @@
 from sqlalchemy import (
-    JSON,
     BigInteger,
     CheckConstraint,
     ForeignKey,
     String,
     UniqueConstraint,
+    Enum,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.store.database.sqlalchemy_base import BaseModel
+import enum
+
+
+class GameSessionStatus(enum.Enum):
+    sleeping = 0
+    waiting_for_num = 1
+    waiting_for_users = 2
+    polling = 3
+
+
+class PlayerStatus(enum.Enum):
+    sleeping = 0
+    active = 1
+    polling = 2
+    assembled = 3
+    dealer = 4
 
 
 class GameSessionModel(BaseModel):
     __tablename__ = "game_sessions"
     id: Mapped[int] = mapped_column(primary_key=True)
     chat_id: Mapped[int] = mapped_column(BigInteger, index=True, unique=True)
-    status: Mapped[str] = mapped_column(
-        String,
-        CheckConstraint(
-            "status IN ('sleeping','waiting_for_num','waiting_for_users',"
-            "'polling')",
-            name="check_game_session_status",
-        ),
+    status: Mapped[GameSessionStatus] = mapped_column(
+        Enum(
+            GameSessionStatus,
+            create_constraint=True,
+            native_enum=False,
+            validate_strings=True,
+        )
     )
     num_users: Mapped[int | None] = mapped_column()
 
@@ -45,7 +62,7 @@ class PlayerModel(BaseModel):
         ),
     )
     tg_id: Mapped[int] = mapped_column(BigInteger, index=True)
-    right_hand: Mapped[dict | None] = mapped_column(JSON)
+    right_hand: Mapped[dict | None] = mapped_column(JSONB)
     balance: Mapped[int] = mapped_column()
     bet: Mapped[int | None] = mapped_column()
 

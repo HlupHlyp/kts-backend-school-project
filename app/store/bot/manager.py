@@ -44,15 +44,15 @@ class BotManager:
         )
 
     async def send_message(
-        self, chat_id: int, text: str, markup: dict | None
-    ) -> SendMessageResponse:
+        self, chat_id: int, text: str, markup: dict | None = None
+    ) -> SendMessageResponse | None:
         url = self.app.store.tg_api.get_url("sendMessage")
         payload = {"chat_id": chat_id, "text": text, "reply_markup": markup}
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, json=payload) as resp:
-                res_dict = await resp.json()
-                return SendMessageResponse.Schema().load(res_dict)
-        return self.app.store.tg_api.tg_client.send_message
+        async with self.session.post(url, json=payload) as resp:
+            res_dict = await resp.json()
+            print(res_dict)
+            return SendMessageResponse.Schema().load(res_dict)
+        return None
 
     @property
     def blackjack(self):
@@ -73,6 +73,9 @@ class BotManager:
             ),
         )
 
-    async def handle_updates(self, updates: list[UpdateObj]) -> None:
+    async def handle_updates(
+        self, session: aiohttp.ClientSession, updates: list[UpdateObj]
+    ) -> None:
+        self.session = session
         for update in updates.result:
             await self.router.navigate(update)
