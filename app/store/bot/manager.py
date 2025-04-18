@@ -13,6 +13,7 @@ if typing.TYPE_CHECKING:
     from app.web.app import Application
 
 from app.store.bot.handlers import (
+    bet_handler,
     players_num_handler,
     start_handler,
     stop_handler,
@@ -42,15 +43,27 @@ class BotManager:
         self.router.create_route(
             trigger="num_players", is_command=False, func=players_num_handler
         )
+        self.router.create_route(
+            trigger="make_a_bet", is_command=False, func=bet_handler
+        )
 
     async def send_message(
-        self, chat_id: int, text: str, markup: dict | None = None
+        self,
+        chat_id: int,
+        text: str,
+        markup: dict | None = None,
     ) -> SendMessageResponse | None:
-        url = self.app.store.tg_api.get_url("sendMessage")
-        payload = {"chat_id": chat_id, "text": text, "reply_markup": markup}
+        url, payload = self.app.store.tg_api.get_url("sendMessage"), None
+        if markup:
+            payload = {"chat_id": chat_id, "text": text, "reply_markup": markup}
+        else:
+            payload = {
+                "chat_id": chat_id,
+                "text": text,
+                "reply_markup": {"inline_keyboard": [[]]},
+            }
         async with self.session.post(url, json=payload) as resp:
             res_dict = await resp.json()
-            print(res_dict)
             return SendMessageResponse.Schema().load(res_dict)
         return None
 

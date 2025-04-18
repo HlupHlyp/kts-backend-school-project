@@ -1,16 +1,15 @@
+import enum
+
 from sqlalchemy import (
     BigInteger,
-    CheckConstraint,
-    ForeignKey,
-    String,
-    UniqueConstraint,
     Enum,
+    ForeignKey,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.store.database.sqlalchemy_base import BaseModel
-import enum
 
 
 class GameSessionStatus(enum.Enum):
@@ -20,12 +19,11 @@ class GameSessionStatus(enum.Enum):
     polling = 3
 
 
-class PlayerStatus(enum.Enum):
+class ParticipantStatus(enum.Enum):
     sleeping = 0
     active = 1
     polling = 2
     assembled = 3
-    dealer = 4
 
 
 class GameSessionModel(BaseModel):
@@ -42,35 +40,58 @@ class GameSessionModel(BaseModel):
     )
     num_users: Mapped[int | None] = mapped_column()
 
-    players: Mapped[list["PlayerModel"]] = relationship(
-        "PlayerModel",
+    participants: Mapped[list["ParticipantModel"]] = relationship(
+        "ParticipantModel",
         back_populates="game_session",
+    )
+    dealer_cards: Mapped[dict | None] = mapped_column(JSONB)
+
+
+class ParticipantModel(BaseModel):
+    __tablename__ = "participants"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    game_session_id: Mapped[int] = mapped_column(
+        ForeignKey("game_sessions.id", ondelete="CASCADE"), index=True
+    )
+    player_id: Mapped[int] = mapped_column(
+        ForeignKey("players.id", ondelete="CASCADE"), index=True
+    )
+    status: Mapped[str] = mapped_column(
+        Enum(
+            ParticipantStatus,
+            create_constraint=True,
+            native_enum=False,
+            validate_strings=True,
+        )
+    )
+    right_hand: Mapped[dict | None] = mapped_column(JSONB)
+    bet: Mapped[int | None] = mapped_column()
+
+    game_session: Mapped["GameSessionModel"] = relationship(
+        "GameSessionModel",
+        back_populates="participants",
+    )
+
+    player: Mapped["PlayerModel"] = relationship(
+        "PlayerModel",
+        back_populates="participants",
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "game_session_id", "player_id", name="session_tg_unique"
+        ),
     )
 
 
 class PlayerModel(BaseModel):
     __tablename__ = "players"
     id: Mapped[int] = mapped_column(primary_key=True)
-    game_session_id: Mapped[int] = mapped_column(
-        ForeignKey("game_sessions.id", ondelete="CASCADE"), index=True
-    )
-    status: Mapped[str] = mapped_column(
-        String,
-        CheckConstraint(
-            "status IN ('sleeping','active','polling', 'assembled', 'dealer') ",
-            name="check_user2session_status",
-        ),
-    )
-    tg_id: Mapped[int] = mapped_column(BigInteger, index=True)
-    right_hand: Mapped[dict | None] = mapped_column(JSONB)
     balance: Mapped[int] = mapped_column()
-    bet: Mapped[int | None] = mapped_column()
+    tg_id: Mapped[int] = mapped_column(BigInteger, index=True, unique=True)
+    username: Mapped[str] = mapped_column(unique=True)
 
-    game_session: Mapped[list["GameSessionModel"]] = relationship(
-        "GameSessionModel",
-        back_populates="players",
-    )
-
-    __table_args__ = (
-        UniqueConstraint("game_session_id", "tg_id", name="session_tg_unique"),
+    participants: Mapped[list["ParticipantModel"]] = relationship(
+        "ParticipantModel",
+        back_populates="player",
     )

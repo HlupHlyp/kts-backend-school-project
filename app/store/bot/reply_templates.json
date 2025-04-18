@@ -49,7 +49,7 @@
                             },
                             {
                                 "text": "5🟡",
-                                "callback_data": "make_a_bet/1"
+                                "callback_data": "make_a_bet/5"
                             },
                             {
                                 "text": "25🟡",
@@ -57,7 +57,7 @@
                             },
                             {
                                 "text": "100🟡",
-                                "callback_data": "make_a_bet/1"
+                                "callback_data": "make_a_bet/100"
                             }
                         ]
                     ]

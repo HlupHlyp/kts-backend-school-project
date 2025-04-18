@@ -183,4 +183,6 @@ class GetUpdatesResponse(Base):
 @dataclass
 class SendMessageResponse(Base):
     ok: bool
-    result: Message
+    result: Message | None = None
+    error_code: int | None = None
+    description: str | None = None
