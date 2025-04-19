@@ -10,6 +10,7 @@ if typing.TYPE_CHECKING:
     from app.web.app import Application
 
 TG_BOT_ADDR = "https://api.telegram.org/bot"
+TIMEOUT = 25
 
 
 class TgApiAccessor(BaseAccessor):
@@ -51,7 +52,7 @@ class TgApiAccessor(BaseAccessor):
     async def poll(self) -> None:
         async with aiohttp.ClientSession() as session:
             updates = await self.get_updates_in_objects(
-                session=session, offset=self.offset, timeout=25
+                session=session, offset=self.offset, timeout=TIMEOUT
             )
             if updates is not None:
                 for update in updates.result:

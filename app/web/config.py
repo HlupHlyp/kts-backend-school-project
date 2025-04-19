@@ -19,6 +19,7 @@ class DatabaseConfig:
     user: str = "postgres"
     password: str = "postgres"
     database: str = "project"
+    driver: str = "postgresql"
 
 
 @dataclass

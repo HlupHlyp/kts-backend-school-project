@@ -8,16 +8,17 @@ import aiohttp
 from app.store.bot.dataclasses import Markup, ReplyTemplates
 from app.store.bot.router import BotRouter
 from app.store.tg_api.dataclasses import SendMessageResponse, UpdateObj
-
-if typing.TYPE_CHECKING:
-    from app.web.app import Application
-
 from app.store.bot.handlers import (
     bet_handler,
     players_num_handler,
     start_handler,
     stop_handler,
 )
+
+if typing.TYPE_CHECKING:
+    from app.web.app import Application
+
+COMMANDS: set[str] = {"start@SC17854_bot", "stop@SC17854_bot"}
 
 
 class BotManager:
@@ -35,17 +36,15 @@ class BotManager:
         )
         self.router = BotRouter(self)
         self.router.create_route(
-            trigger="start@SC17854_bot", is_command=True, func=start_handler
+            route_str="start@SC17854_bot", func=start_handler
         )
         self.router.create_route(
-            trigger="stop@SC17854_bot", is_command=True, func=stop_handler
+            route_str="stop@SC17854_bot", func=stop_handler
         )
         self.router.create_route(
-            trigger="num_players", is_command=False, func=players_num_handler
+            route_str="num_players", func=players_num_handler
         )
-        self.router.create_route(
-            trigger="make_a_bet", is_command=False, func=bet_handler
-        )
+        self.router.create_route(route_str="make_a_bet", func=bet_handler)
 
     async def send_message(
         self,
@@ -73,11 +72,15 @@ class BotManager:
 
     async def send_reply(self, reply_name: str, chat_id: int) -> None:
         reply_template = next(
-            filter(
-                lambda reply: reply.name == reply_name,
-                self.reply_templates.data,
-            )
+            reply
+            for reply in self.reply_templates.data
+            if reply.name == reply_name
         )
+        if reply_template == None:
+            self.logger.error(
+                f'Template is with name "{reply_name}" hasn\'t been found'
+            )
+            raise Exception
         await self.send_message(
             chat_id=chat_id,
             text=reply_template.content.text,

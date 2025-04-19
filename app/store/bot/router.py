@@ -3,6 +3,7 @@ from collections.abc import Callable
 
 from app.store.bot.dataclasses import Action, Route
 from app.store.tg_api.dataclasses import UpdateObj
+from app.store.bot.manager import COMMANDS
 
 if typing.TYPE_CHECKING:
     from app.store.bot.manager import BotManager
@@ -15,13 +16,13 @@ class BotRouter:
 
     def create_route(
         self,
-        trigger: str,
+        route: str,
         func: Callable[["BotManager", UpdateObj, list | None], None],
         is_command: bool = False,
     ) -> None:
         self.routes.append(
             Route(
-                trigger=trigger,
+                route=route,
                 action=Action(func=func, is_command=is_command),
             )
         )
@@ -37,27 +38,27 @@ class BotRouter:
         # Также здесь выделяются параметры
         if update.message is not None:
             if str(update.message.text).startswith("/"):
-                command = str(update.message.text).split("/")
-                route = next(
-                    filter(
-                        lambda route: route.trigger == command[1], self.routes
+                command = str(update.message.text).split("/")[1]
+                if command in COMMANDS:
+                    route = next(
+                        route
+                        for route in self.routes
+                        if route.route_str == command
                     )
-                )
-                if route is not None and route.action.is_command:
-                    params = []
-                    for i in range(2, len(command)):
-                        params += command[i]
-                    await route.action.func(
-                        update=update, params=params, manager=self.manager
-                    )
+                    if route is not None:
+                        await route.action.func(
+                            update=update,
+                            manager=self.manager,
+                        )
+                    else:
+                        self.manager.logger.error(
+                            "Command's route hasn't been found"
+                        )
+                        raise Exception
         elif update.callback_query is not None:
-            query = str(update.callback_query.data).split("/")
+            query = str(update.callback_query.data).split("/")[0]
             route = next(
-                filter(lambda route: route.trigger == query[0], self.routes)
+                route for route in self.routes if route.route_str == query
             )
-
-            if route is not None and not route.action.is_command:
-                params = query[1:]
-                await route.action.func(
-                    update=update, manager=self.manager, params=params
-                )
+            if route is not None:
+                await route.action.func(update=update, manager=self.manager)

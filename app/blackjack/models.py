@@ -12,18 +12,18 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.store.database.sqlalchemy_base import BaseModel
 
 
-class GameSessionStatus(enum.Enum):
-    sleeping = 0
-    waiting_for_num = 1
-    waiting_for_users = 2
-    polling = 3
+class GameSessionStatus(enum.StrEnum):
+    SLEEPING = "SLEEPING"
+    WAITING_FOR_NUM = "WAITING_FOR_NUM"
+    WAITING_FOR_USERS = "WAITING_FOR_USERS"
+    POLLING = "POLLING"
 
 
-class ParticipantStatus(enum.Enum):
-    sleeping = 0
-    active = 1
-    polling = 2
-    assembled = 3
+class ParticipantStatus(enum.StrEnum):
+    SLEEPING = "SLEEPING"
+    ACTIVE = "ACTIVE"
+    POLLING = "POLLING"
+    ASSEMBLED = "ASSEMBLED"
 
 
 class GameSessionModel(BaseModel):
@@ -44,7 +44,7 @@ class GameSessionModel(BaseModel):
         "ParticipantModel",
         back_populates="game_session",
     )
-    dealer_cards: Mapped[dict | None] = mapped_column(JSONB)
+    dealer_cards: Mapped[dict] = mapped_column(JSONB, default={})
 
 
 class ParticipantModel(BaseModel):
@@ -64,7 +64,7 @@ class ParticipantModel(BaseModel):
             validate_strings=True,
         )
     )
-    right_hand: Mapped[dict | None] = mapped_column(JSONB)
+    right_hand: Mapped[dict] = mapped_column(JSONB, default={})
     bet: Mapped[int | None] = mapped_column()
 
     game_session: Mapped["GameSessionModel"] = relationship(

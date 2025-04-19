@@ -2,7 +2,7 @@ import enum
 import typing
 from collections.abc import Callable
 
-from marshmallow_dataclass import dataclass
+from marshmallow_dataclass import dataclass, field
 
 if typing.TYPE_CHECKING:
     from app.store.bot.manager import BotManager
@@ -14,12 +14,11 @@ from app.store.tg_api.dataclasses import Base
 @dataclass
 class Action:
     func: Callable[["BotManager", "UpdateObj", list | None], None]
-    is_command: bool = False
 
 
 @dataclass
 class Route:
-    trigger: str
+    route_str: str
     action: Action
 
 
@@ -51,29 +50,29 @@ class ReplyTemplates(Base):
     data: list[Reply]
 
 
-class CardSuit(enum.Enum):
-    hearts = 0
-    crosses = 1
-    spades = 2
-    diamonds = 3
+class CardSuit(enum.StrEnum):
+    HEARTS = "♥"
+    CROSSES = "♣"
+    SPADES = "♠"
+    DIAMONDS = "♦"
 
 
 @dataclass
 class CardName(enum.Enum):
-    one = 1
-    two = 2
-    three = 3
-    four = 4
-    five = 5
-    six = 6
-    seven = 7
-    eight = 8
-    nine = 9
-    ten = 10
-    king = 11
-    queen = 12
-    jack = 13
-    ace = 14
+    ONE = 1
+    TWO = 2
+    THREE = 3
+    FOUR = 4
+    FIVE = 5
+    SIX = 6
+    SEVEN = 7
+    EIGHT = 8
+    NINE = 9
+    TEN = 10
+    KING = 11
+    QUEEN = 12
+    JACK = 13
+    ACE = 14
 
 
 @dataclass
@@ -85,4 +84,4 @@ class Card(Base):
 
 @dataclass
 class Cards(Base):
-    cards: list[Card] | None = None
+    cards: list[Card] = field(default_factory=list)

@@ -29,7 +29,7 @@ class Database:
             username=self.app.config.database.user,
             password=self.app.config.database.password,
             host=self.app.config.database.host,
-            drivername="postgresql+asyncpg",
+            drivername=self.app.config.database.driver,
         )
 
     async def connect(self, *args: Any, **kwargs: Any) -> None:
