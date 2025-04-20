@@ -6,20 +6,17 @@ from logging import getLogger
 import aiohttp
 
 from app.store.bot.dataclasses import Markup, ReplyTemplates
-from app.store.bot.router import BotRouter
-from app.store.tg_api.dataclasses import SendMessageResponse, UpdateObj
 from app.store.bot.handlers import (
     bet_handler,
     players_num_handler,
     start_handler,
     stop_handler,
 )
+from app.store.bot.router import BotRouter
+from app.store.tg_api.dataclasses import SendMessageResponse, UpdateObj
 
 if typing.TYPE_CHECKING:
     from app.web.app import Application
-
-COMMANDS: set[str] = {"start@SC17854_bot", "stop@SC17854_bot"}
-
 
 class BotManager:
     def __init__(self, app: "Application"):
@@ -76,11 +73,10 @@ class BotManager:
             for reply in self.reply_templates.data
             if reply.name == reply_name
         )
-        if reply_template == None:
-            self.logger.error(
-                f'Template is with name "{reply_name}" hasn\'t been found'
+        if reply_template is None:
+            raise Exception(
+                f"reply_template with name: {reply_name} hasn't been found"
             )
-            raise Exception
         await self.send_message(
             chat_id=chat_id,
             text=reply_template.content.text,

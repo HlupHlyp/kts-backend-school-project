@@ -2,7 +2,8 @@ import enum
 import typing
 from collections.abc import Callable
 
-from marshmallow_dataclass import dataclass, field
+from marshmallow_dataclass import dataclass
+from dataclasses import field
 
 if typing.TYPE_CHECKING:
     from app.store.bot.manager import BotManager
@@ -12,14 +13,9 @@ from app.store.tg_api.dataclasses import Base
 
 
 @dataclass
-class Action:
-    func: Callable[["BotManager", "UpdateObj", list | None], None]
-
-
-@dataclass
 class Route:
     route_str: str
-    action: Action
+    action: Callable[["BotManager", "UpdateObj", list | None], None]
 
 
 @dataclass

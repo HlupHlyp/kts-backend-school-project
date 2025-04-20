@@ -1,9 +1,10 @@
 import typing
 from collections.abc import Callable
 
-from app.store.bot.dataclasses import Action, Route
+from app.store.bot.dataclasses import Route
 from app.store.tg_api.dataclasses import UpdateObj
-from app.store.bot.manager import COMMANDS
+
+COMMANDS: set[str] = {"start@SC17854_bot", "stop@SC17854_bot"}
 
 if typing.TYPE_CHECKING:
     from app.store.bot.manager import BotManager
@@ -16,14 +17,13 @@ class BotRouter:
 
     def create_route(
         self,
-        route: str,
+        route_str: str,
         func: Callable[["BotManager", UpdateObj, list | None], None],
-        is_command: bool = False,
     ) -> None:
         self.routes.append(
             Route(
-                route=route,
-                action=Action(func=func, is_command=is_command),
+                route_str=route_str,
+                action=func,
             )
         )
 
@@ -46,7 +46,7 @@ class BotRouter:
                         if route.route_str == command
                     )
                     if route is not None:
-                        await route.action.func(
+                        await route.action(
                             update=update,
                             manager=self.manager,
                         )
@@ -60,5 +60,7 @@ class BotRouter:
             route = next(
                 route for route in self.routes if route.route_str == query
             )
+            print("!!!!")
+            print(route)
             if route is not None:
-                await route.action.func(update=update, manager=self.manager)
+                await route.action(update=update, manager=self.manager)

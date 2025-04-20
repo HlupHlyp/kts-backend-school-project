@@ -128,6 +128,15 @@ class NewParticipant:
 
 
 @dataclass
+class Reply2Message:
+    message_id: int
+    from_: MessageFrom = field(metadata={"data_key": "from"})
+    chat: Chat
+    date: int
+    text: str | None = None
+
+
+@dataclass
 class Message:
     message_id: int
     from_: MessageFrom = field(metadata={"data_key": "from"})
@@ -150,6 +159,7 @@ class Message:
     left_chat_participant: NewParticipant | None = None
     left_chat_member: NewParticipant | None = None
     edit_date: int | None = None
+    reply_to_message: Reply2Message | None = None
 
 
 @dataclass

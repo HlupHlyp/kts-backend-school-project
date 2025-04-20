@@ -1,8 +1,8 @@
-"""Versions have been cleared. Now we have three entities: player, participant and game_session. Also enum game_session.status and participant.status
+"""DB has been restarted. Tables have been created
 
-Revision ID: f8547b8aa85c
+Revision ID: 9c68aa2ead77
 Revises: 
-Create Date: 2025-04-18 12:00:18.233449
+Create Date: 2025-04-20 14:09:50.722774
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'f8547b8aa85c'
+revision: str = '9c68aa2ead77'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -23,9 +23,9 @@ def upgrade() -> None:
     op.create_table('game_sessions',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('chat_id', sa.BigInteger(), nullable=False),
-    sa.Column('status', sa.Enum('sleeping', 'waiting_for_num', 'waiting_for_users', 'polling', name='gamesessionstatus', native_enum=False, create_constraint=True), nullable=False),
+    sa.Column('status', sa.Enum('SLEEPING', 'WAITING_FOR_NUM', 'WAITING_FOR_USERS', 'POLLING', name='gamesessionstatus', native_enum=False, create_constraint=True), nullable=False),
     sa.Column('num_users', sa.Integer(), nullable=True),
-    sa.Column('dealer_cards', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('dealer_cards', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_game_sessions_chat_id'), 'game_sessions', ['chat_id'], unique=True)
@@ -42,10 +42,9 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('game_session_id', sa.Integer(), nullable=False),
     sa.Column('player_id', sa.Integer(), nullable=False),
-    sa.Column('status', sa.Enum('sleeping', 'active', 'polling', 'assembled', name='playerstatus', native_enum=False, create_constraint=True), nullable=False),
-    sa.Column('right_hand', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('status', sa.Enum('SLEEPING', 'ACTIVE', 'POLLING', 'ASSEMBLED', name='participantstatus', native_enum=False, create_constraint=True), nullable=False),
+    sa.Column('right_hand', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('bet', sa.Integer(), nullable=True),
-    sa.CheckConstraint('bet = 0 or bet < 0', name='positivest bet'),
     sa.ForeignKeyConstraint(['game_session_id'], ['game_sessions.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['player_id'], ['players.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
