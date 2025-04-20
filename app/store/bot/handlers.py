@@ -77,7 +77,6 @@ async def bet_handler(
             tg_id=tg_id, chat_id=chat_id, username=username, session=session
         )
         if participant.status == ParticipantStatus.SLEEPING:
-            print(f"session:{session}")
             await manager.blackjack.set_participant_bet(
                 participant_id=participant.id, bet=int(bet), session=session
             )

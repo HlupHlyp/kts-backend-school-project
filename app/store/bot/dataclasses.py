@@ -1,9 +1,9 @@
 import enum
 import typing
 from collections.abc import Callable
+from dataclasses import field
 
 from marshmallow_dataclass import dataclass
-from dataclasses import field
 
 if typing.TYPE_CHECKING:
     from app.store.bot.manager import BotManager

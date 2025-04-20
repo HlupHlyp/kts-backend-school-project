@@ -60,7 +60,5 @@ class BotRouter:
             route = next(
                 route for route in self.routes if route.route_str == query
             )
-            print("!!!!")
-            print(route)
             if route is not None:
                 await route.action(update=update, manager=self.manager)

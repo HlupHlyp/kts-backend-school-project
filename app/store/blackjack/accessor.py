@@ -1,6 +1,6 @@
 from sqlalchemy import select, update
-from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import text
 
 from app.base.base_accessor import BaseAccessor
@@ -198,7 +198,8 @@ class BlackjackAccessor(BaseAccessor):
         expected_users_num = game_session.num_users
         num_participants = await session.scalar(
             text(
-                f"select count(id) from participants where game_session_id={game_session.id}"
+                f"select count(id) from participants where game_session_id="
+                f"{game_session.id}"
             )
         )
         return expected_users_num == num_participants
