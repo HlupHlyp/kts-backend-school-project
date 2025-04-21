@@ -178,6 +178,38 @@ class UpdateObj:
     edited_message: Message | None = None
     callback_query: CallbackQuery | None = None
 
+    @property
+    def chat_id(self):
+        if self.message is not None:
+            return self.message.chat.id
+        if self.callback_query is not None:
+            return self.callback_query.message.chat.id
+        return None
+
+    @property
+    def tg_id(self):
+        if self.message is not None:
+            return self.message.from_.id
+        if self.callback_query is not None:
+            return self.callback_query.from_.id
+        return None
+
+    @property
+    def username(self):
+        if self.message is not None:
+            return self.message.from_.username
+        if self.callback_query is not None:
+            return self.callback_query.from_.username
+        return None
+
+    @property
+    def first_name(self):
+        if self.message is not None:
+            return self.message.from_.first_name
+        if self.callback_query is not None:
+            return self.callback_query.from_.first_name
+        return None
+
 
 @dataclass
 class Base:

@@ -6,13 +6,13 @@ from logging import getLogger
 import aiohttp
 
 from app.store.bot.dataclasses import Markup, ReplyTemplates
+from app.store.bot.exceptions import ReplyTemplateNotFoundError
 from app.store.bot.handlers import (
     bet_handler,
     players_num_handler,
     start_handler,
     stop_handler,
 )
-from app.store.bot.exceptions import ReplyTemplateNotFoundError
 from app.store.bot.router import BotRouter
 from app.store.tg_api.dataclasses import SendMessageResponse, UpdateObj
 

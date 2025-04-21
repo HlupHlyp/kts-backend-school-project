@@ -1,7 +1,7 @@
 {
     "data": [
         {
-            "name": "player_num_setting",
+            "name": "PLAYER_NUM_SETTING",
             "content": {
                 "text": "Выберите сколько игроков вы хотите пригласить?",
                 "markup": {
@@ -37,7 +37,7 @@
             }
         },
         {
-            "name": "inviting",
+            "name": "INVITING",
             "content": {
                 "text": "Чтобы сделать ставку нажмите на кнопку",
                 "markup": {
@@ -65,21 +65,21 @@
             }
         },
         {
-            "name": "starting_game",
+            "name": "STARTING_GAME",
             "content": {
                 "text": "Начинаем",
                 "markup": {}
             }
         },
         {
-            "name": "stopping_game",
+            "name": "STOPPING_GAME",
             "content": {
                 "text": "Игра завершена принудительно",
                 "markup": {}
             }
         },
         {
-            "name": "session_already_started",
+            "name": "SESSION_ALREADY_STARTED",
             "content": {
                 "text": "Игра уже началась, чтобы начать игру заново необходимо ее завершить",
                 "markup": {

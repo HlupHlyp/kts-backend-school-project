@@ -1,7 +1,6 @@
-from sqlalchemy import select, update, func
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload, joinedload
-from sqlalchemy.sql import text
+from sqlalchemy.orm import selectinload
 
 from app.base.base_accessor import BaseAccessor
 from app.blackjack.models import (
@@ -11,12 +10,12 @@ from app.blackjack.models import (
     ParticipantStatus,
     PlayerModel,
 )
+from app.store.bot.dataclasses import Cards
 from app.store.bot.exceptions import (
     GameSessionNotFoundError,
     ParticipantNotFoundError,
     PlayerNotFoundError,
 )
-from app.store.bot.dataclasses import Cards
 
 DEFAULT_BALANCE = 10000
 
@@ -35,7 +34,9 @@ class BlackjackAccessor(BaseAccessor):
                 chat_id=chat_id, status=GameSessionStatus.SLEEPING
             )
             session.add(game_session)
-        return game_session
+        return await self.get_game_session_for_update(
+            chat_id=chat_id, session=session
+        )
 
     async def get_game_session_by_chat(
         self,
@@ -48,35 +49,41 @@ class BlackjackAccessor(BaseAccessor):
             .options(selectinload(GameSessionModel.participants))
         )
 
-    async def check_game_session(
-        self, session: AsyncSession, chat_id: int
+    async def get_game_session_for_update(
+        self,
+        session: AsyncSession,
+        chat_id: int,
     ) -> GameSessionModel:
-        game_session = await self.get_game_session_by_chat(
-            chat_id=chat_id, session=session
+        result = await session.execute(
+            select(GameSessionModel)
+            .where(GameSessionModel.chat_id == chat_id)
+            .with_for_update()
         )
-        if game_session is None:
-            raise GameSessionNotFoundError(chat_id)
-        return game_session
+        if result is None:
+            raise GameSessionNotFoundError
+        return result.scalar()
 
     async def set_game_session_users_num(
         self, session: AsyncSession, chat_id: int, users_num: int
     ) -> None:
-        await self.check_game_session(chat_id=chat_id, session=session)
-        await session.execute(
+        result = await session.execute(
             update(GameSessionModel)
             .where(GameSessionModel.chat_id == chat_id)
             .values(num_users=users_num)
         )
+        if result.rowcount == 0:
+            raise GameSessionNotFoundError(chat_id)
 
     async def set_game_session_status(
         self, session: AsyncSession, chat_id: int, status: GameSessionStatus
     ) -> None:
-        await self.check_game_session(chat_id=chat_id, session=session)
-        await session.execute(
+        result = await session.execute(
             update(GameSessionModel)
             .where(GameSessionModel.chat_id == chat_id)
             .values(status=status)
         )
+        if result.rowcount == 0:
+            raise GameSessionNotFoundError(chat_id)
 
     async def get_player_by_tg_id(
         self, session: AsyncSession, tg_id: int
@@ -96,23 +103,17 @@ class BlackjackAccessor(BaseAccessor):
             session.add(player)
         return player
 
-    async def check_player(
-        self, session: AsyncSession, tg_id: int
-    ) -> PlayerModel:
-        player = await self.get_player_by_tg_id(tg_id=tg_id, session=session)
-        if player is None:
-            raise PlayerNotFoundError(tg_id)
-        return player
-
     async def get_participant_by_tg_and_chat_id(
         self, tg_id: int, chat_id: int, session: AsyncSession
     ) -> ParticipantModel | None:
         player = await self.get_player_by_tg_id(tg_id=tg_id, session=session)
         if player is None:
             return None
-        game_session = await self.check_game_session(
+        game_session = await self.get_game_session_by_chat(
             chat_id=chat_id, session=session
         )
+        if game_session is None:
+            raise GameSessionNotFoundError
         return await session.scalar(
             select(ParticipantModel).where(
                 ParticipantModel.player_id == player.id,
@@ -130,96 +131,111 @@ class BlackjackAccessor(BaseAccessor):
             player = await self.get_or_create_player(
                 tg_id=tg_id, session=session, username=username
             )
-            game_session = await self.check_game_session(
+            game_session = await self.get_game_session_by_chat(
                 chat_id=chat_id, session=session
             )
+            if game_session is None:
+                raise GameSessionNotFoundError
             participant = ParticipantModel(
                 game_session_id=game_session.id,
                 player_id=player.id,
                 status=ParticipantStatus.SLEEPING,
             )
             session.add(participant)
-        return await self.get_participant_by_tg_and_chat_id(
+            session.commit()
+        return await self.get_participant_for_update(
             session=session, tg_id=tg_id, chat_id=chat_id
         )
 
-    async def get_participant_by_id(
-        self, participant_id: int, session: AsyncSession
-    ) -> ParticipantModel | None:
-        return await session.scalar(
-            select(ParticipantModel)
-            .where(ParticipantModel.id == participant_id)
-            .options(joinedload(ParticipantModel.player))
+    async def get_game_session_participants(
+        self,
+        session: AsyncSession,
+        game_session: GameSessionModel,
+    ) -> GameSessionModel | None:
+        result = await session.execute(
+            select(ParticipantModel).where(
+                ParticipantModel.game_session_id == game_session.id
+            )
         )
-
-    async def check_participant_by_id(
-        self, participant_id: int, session: AsyncSession
-    ) -> ParticipantModel:
-        participant = await self.get_participant_by_id(
-            participant_id=participant_id, session=session
-        )
-        if participant is None:
-            raise ParticipantNotFoundError(participant_id)
-        return participant
+        if result.rowcount == 0:
+            raise GameSessionNotFoundError
+        return result.scalars()
 
     async def set_participant_status(
         self,
-        participant_id: int,
+        participant: ParticipantModel,
         status: ParticipantStatus,
         session: AsyncSession,
     ) -> None:
-        await self.check_participant_by_id(
-            participant_id=participant_id, session=session
-        )
-        await session.execute(
+        result = await session.execute(
             update(ParticipantModel)
-            .where(ParticipantModel.id == participant_id)
+            .where(ParticipantModel.id == participant.id)
             .values(status=status)
         )
+        if result.rowcount == 0:
+            raise ParticipantNotFoundError
+
+    async def get_participant_for_update(
+        self, chat_id: int, tg_id: int, session=AsyncSession
+    ) -> ParticipantModel:
+        player = await self.get_player_by_tg_id(tg_id=tg_id, session=session)
+        if player is None:
+            return None
+        game_session = await self.get_game_session_by_chat(
+            chat_id=chat_id, session=session
+        )
+        if game_session is None:
+            raise GameSessionNotFoundError
+        result = await session.execute(
+            select(ParticipantModel)
+            .where(
+                ParticipantModel.player_id == player.id,
+                ParticipantModel.game_session_id == game_session.id,
+            )
+            .options(selectinload(ParticipantModel.player))
+            .with_for_update()
+        )
+        if result is None:
+            raise ParticipantNotFoundError
+        return result.scalar()
 
     async def set_participant_bet(
-        self, participant_id: int, bet: int, session: AsyncSession
+        self, participant: ParticipantModel, bet: int, session: AsyncSession
     ) -> None:
-        participant = await self.check_participant_by_id(
-            participant_id=participant_id, session=session
-        )
-        await session.execute(
+        result = await session.execute(
             update(ParticipantModel)
             .where(ParticipantModel.id == participant.id)
             .values(bet=bet)
         )
-        await session.execute(
+        if result.rowcount == 0:
+            raise ParticipantNotFoundError
+        result = await session.execute(
             update(PlayerModel)
             .where(PlayerModel.id == participant.player.id)
             .values(balance=participant.player.balance - bet)
         )
+        if result.rowcount == 0:
+            raise PlayerNotFoundError
 
     async def is_participants_gathered(
-        self, chat_id: int, session: AsyncSession
+        self, game_session: GameSessionModel, session: AsyncSession
     ) -> bool:
-        game_session = await self.check_game_session(
-            chat_id=chat_id, session=session
-        )
         expected_users_num = game_session.num_users
-        num_participants = await session.scalar(func.count(GameSessionModel.id))
+        num_participants = await session.scalar(
+            func.count(ParticipantModel.id).filter(
+                ParticipantModel.game_session_id == game_session.id,
+                ParticipantModel.status == ParticipantStatus.ACTIVE,
+            )
+        )
         return expected_users_num == num_participants
 
     async def set_participant_cards(
-        self, participant_id: int, cards: Cards, session: AsyncSession
+        self, participant: ParticipantModel, cards: Cards, session: AsyncSession
     ) -> None:
-        await self.check_participant_by_id(
-            participant_id=participant_id, session=session
-        )
-        await session.execute(
+        result = await session.execute(
             update(ParticipantModel)
-            .where(ParticipantModel.id == participant_id)
+            .where(ParticipantModel.id == participant.id)
             .values(right_hand=cards.to_dict(cards))
         )
-
-    async def get_participant_cards(
-        self, participant_id: int, session: AsyncSession
-    ) -> Cards:
-        participant = await self.check_participant_by_id(
-            participant_id=participant_id, session=session
-        )
-        return Cards.from_dict(participant.right_hand)
+        if result.rowcount == 0:
+            raise ParticipantNotFoundError
