@@ -1,6 +1,6 @@
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.base.base_accessor import BaseAccessor
 from app.blackjack.models import (
@@ -46,7 +46,7 @@ class BlackjackAccessor(BaseAccessor):
         return await session.scalar(
             select(GameSessionModel)
             .where(GameSessionModel.chat_id == chat_id)
-            .options(selectinload(GameSessionModel.participants))
+            .options(joinedload(GameSessionModel.participants))
         )
 
     async def get_game_session_for_update(
@@ -54,14 +54,14 @@ class BlackjackAccessor(BaseAccessor):
         session: AsyncSession,
         chat_id: int,
     ) -> GameSessionModel:
-        result = await session.execute(
+        result = await session.scalar(
             select(GameSessionModel)
             .where(GameSessionModel.chat_id == chat_id)
             .with_for_update()
         )
         if result is None:
             raise GameSessionNotFoundError
-        return result.scalar()
+        return result
 
     async def set_game_session_users_num(
         self, session: AsyncSession, chat_id: int, users_num: int
@@ -142,7 +142,7 @@ class BlackjackAccessor(BaseAccessor):
                 status=ParticipantStatus.SLEEPING,
             )
             session.add(participant)
-            session.commit()
+            await session.commit()
         return await self.get_participant_for_update(
             session=session, tg_id=tg_id, chat_id=chat_id
         )
@@ -152,14 +152,14 @@ class BlackjackAccessor(BaseAccessor):
         session: AsyncSession,
         game_session: GameSessionModel,
     ) -> GameSessionModel | None:
-        result = await session.execute(
+        result = await session.scalar(
             select(ParticipantModel).where(
                 ParticipantModel.game_session_id == game_session.id
             )
         )
-        if result.rowcount == 0:
+        if result is None:
             raise GameSessionNotFoundError
-        return result.scalars()
+        return result
 
     async def set_participant_status(
         self,
@@ -176,17 +176,17 @@ class BlackjackAccessor(BaseAccessor):
             raise ParticipantNotFoundError
 
     async def get_participant_for_update(
-        self, chat_id: int, tg_id: int, session=AsyncSession
+        self, chat_id: int, tg_id: int, session: AsyncSession
     ) -> ParticipantModel:
         player = await self.get_player_by_tg_id(tg_id=tg_id, session=session)
         if player is None:
-            return None
+            raise PlayerNotFoundError
         game_session = await self.get_game_session_by_chat(
             chat_id=chat_id, session=session
         )
         if game_session is None:
             raise GameSessionNotFoundError
-        result = await session.execute(
+        result = await session.scalar(
             select(ParticipantModel)
             .where(
                 ParticipantModel.player_id == player.id,
@@ -197,7 +197,7 @@ class BlackjackAccessor(BaseAccessor):
         )
         if result is None:
             raise ParticipantNotFoundError
-        return result.scalar()
+        return result
 
     async def set_participant_bet(
         self, participant: ParticipantModel, bet: int, session: AsyncSession
@@ -222,7 +222,7 @@ class BlackjackAccessor(BaseAccessor):
     ) -> bool:
         expected_users_num = game_session.num_users
         num_participants = await session.scalar(
-            func.count(ParticipantModel.id).filter(
+            select(func.count(ParticipantModel.id)).where(
                 ParticipantModel.game_session_id == game_session.id,
                 ParticipantModel.status == ParticipantStatus.ACTIVE,
             )

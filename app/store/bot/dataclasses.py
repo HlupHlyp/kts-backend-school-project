@@ -1,23 +1,9 @@
 import enum
-import typing
-from collections.abc import Callable
 from dataclasses import field
 
 from marshmallow_dataclass import dataclass
 
-if typing.TYPE_CHECKING:
-    from app.store.bot.manager import BotManager
-    from app.store.tg_api.dataclasses import UpdateObj
-
 from app.store.tg_api.dataclasses import Base
-
-C = typing.TypeVar("C", bound="Cards")
-
-
-@dataclass
-class Route:
-    route_str: str
-    action: Callable[["BotManager", "UpdateObj", list | None], None]
 
 
 @dataclass
@@ -86,5 +72,5 @@ class Cards(Base):
     def to_dict(self) -> dict:
         return Cards.Schema().dump(self.cards)
 
-    def from_dict(self, cards: dict) -> C:
+    def from_dict(self, cards: dict) -> "Cards":
         return Cards.Schema().load(cards)

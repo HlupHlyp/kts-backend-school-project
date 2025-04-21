@@ -1,3 +1,4 @@
+import asyncio
 import typing
 
 import aiohttp
@@ -27,7 +28,7 @@ class TgApiAccessor(BaseAccessor):
         self,
         session: aiohttp.ClientSession,
         offset: int | None = None,
-        timeout: int = 0,
+        timeout: int = TIMEOUT,
     ) -> GetUpdatesResponse | None:
         url = self.get_url("getUpdates")
         params, res_dict = {}, {}
@@ -40,9 +41,10 @@ class TgApiAccessor(BaseAccessor):
         return GetUpdatesResponse.Schema().load(res_dict, partial=True)
 
     async def connect(self, app: "Application") -> None:
-        self.offset = 0
+        self.queue = asyncio.Queue()
+        self.http_session = aiohttp.ClientSession()
         self.poller = Poller(app.store)
-        self.logger.info("start polling")
+        self.offset = 0
         self.poller.start()
 
     async def disconnect(self, app: "Application") -> None:
@@ -50,13 +52,12 @@ class TgApiAccessor(BaseAccessor):
             await self.poller.stop()
 
     async def poll(self) -> None:
-        async with aiohttp.ClientSession() as session:
-            updates = await self.get_updates_in_objects(
-                session=session, offset=self.offset, timeout=TIMEOUT
-            )
-            if updates is not None:
-                for update in updates.result:
-                    self.offset = update.update_id + 1
-                await self.app.store.bots_manager.handle_updates(
-                    session=session, updates=updates
-                )
+        updates = await self.get_updates_in_objects(
+            session=self.http_session,
+            offset=self.offset,
+            timeout=TIMEOUT,
+        )
+        if updates is not None:
+            for update in updates.result:
+                self.offset = update.update_id + 1
+                self.queue.put_nowait(update)

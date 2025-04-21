@@ -19,8 +19,8 @@ class Poller:
             self.start()
 
     def start(self) -> None:
+        self.store.tg_api.logger.info("start polling")
         self.is_running = True
-
         self.poll_task = asyncio.create_task(self.poll())
         self.poll_task.add_done_callback(self._done_callback)
 

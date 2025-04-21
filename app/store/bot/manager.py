@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import typing
@@ -5,6 +6,7 @@ from logging import getLogger
 
 import aiohttp
 
+from app.base.base_accessor import BaseAccessor
 from app.store.bot.dataclasses import Markup, ReplyTemplates
 from app.store.bot.exceptions import ReplyTemplateNotFoundError
 from app.store.bot.handlers import (
@@ -13,15 +15,16 @@ from app.store.bot.handlers import (
     start_handler,
     stop_handler,
 )
-from app.store.bot.router import BotRouter
-from app.store.tg_api.dataclasses import SendMessageResponse, UpdateObj
+from app.store.bot.router import BotRouter, Command, Query
+from app.store.tg_api.dataclasses import SendMessageResponse
 
 if typing.TYPE_CHECKING:
     from app.web.app import Application
 
 
-class BotManager:
-    def __init__(self, app: "Application"):
+class BotManager(BaseAccessor):
+    def __init__(self, app: "Application", *args, **kwargs):
+        super().__init__(app, *args, **kwargs)
         self.app = app
         self.bot = None
         self.logger = getLogger("handler")
@@ -30,20 +33,17 @@ class BotManager:
         )
         with open(path, "r") as file:
             self.reply_templates = json.load(file)
-        self.reply_templates = ReplyTemplates.Schema().load(
-            self.reply_templates
-        )
+        reply_templates = ReplyTemplates.Schema().load(self.reply_templates)
+        self.reply_templates = reply_templates
         self.router = BotRouter(self)
-        self.router.create_route(
-            route_str="start@SC17854_bot", func=start_handler
-        )
-        self.router.create_route(
-            route_str="stop@SC17854_bot", func=stop_handler
-        )
-        self.router.create_route(
-            route_str="num_players", func=players_num_handler
-        )
-        self.router.create_route(route_str="make_a_bet", func=bet_handler)
+        self.router.create_command_route(Command.START, start_handler)
+        self.router.create_command_route(Command.STOP, stop_handler)
+        self.router.create_query_route(Query.NUM_PLAYERS, players_num_handler)
+        self.router.create_query_route(Query.MAKE_A_BET, bet_handler)
+
+    async def connect(self, app: "Application") -> None:
+        self.http_session = aiohttp.ClientSession()
+        self.start()
 
     async def send_message(
         self,
@@ -60,16 +60,21 @@ class BotManager:
                 "text": text,
                 "reply_markup": {"inline_keyboard": [[]]},
             }
-        async with self.session.post(url, json=payload) as resp:
+        async with self.http_session.post(url, json=payload) as resp:
             res_dict = await resp.json()
             return SendMessageResponse.Schema().load(res_dict)
-        return None
 
     @property
     def blackjack(self):
         return self.app.store.blackjack
 
-    async def send_reply(self, reply_name: str, chat_id: int) -> None:
+    @property
+    def tg_api(self):
+        return self.app.store.tg_api
+
+    async def send_reply(
+        self, reply_name: ReplyTemplates, chat_id: int
+    ) -> None:
         reply_template = next(
             reply
             for reply in self.reply_templates.data
@@ -85,9 +90,12 @@ class BotManager:
             ),
         )
 
-    async def handle_updates(
-        self, session: aiohttp.ClientSession, updates: list[UpdateObj]
-    ) -> None:
-        self.session = session
-        for update in updates.result:
-            await self.router.navigate(update)
+    async def _worker(self):
+        while True:
+            async with self.app.database.session() as db_session:
+                update = await self.tg_api.queue.get()
+                await self.router.navigate(update, db_session)
+
+    def start(self):
+        self.tg_api.logger.info("start working")
+        self.worker_task = asyncio.create_task(self._worker())

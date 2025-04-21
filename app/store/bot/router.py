@@ -1,39 +1,56 @@
+import enum
 import typing
-from collections.abc import Callable
 
-from app.store.bot.dataclasses import Route
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.store.bot.exceptions import (
     CommandRouteNotFoundError,
     QueryRouteNotFoundError,
 )
 from app.store.tg_api.dataclasses import UpdateObj
 
-QUERIES: set[str] = {"num_players", "make_a_bet"}
-
-COMMANDS: set[str] = {"start@SC17854_bot", "stop@SC17854_bot"}
-
 if typing.TYPE_CHECKING:
     from app.store.bot.manager import BotManager
+    from app.store.tg_api.dataclasses import UpdateObj
+
+
+class Query(enum.StrEnum):
+    NUM_PLAYERS = "num_players"
+    MAKE_A_BET = "make_a_bet"
+
+
+class Command(enum.StrEnum):
+    START = "start@SC17854_bot"
+    STOP = "stop@SC17854_bot"
+
+
+class Handler(typing.Protocol):
+    def __call__(
+        self, manager: "BotManager", update: "UpdateObj", session: AsyncSession
+    ) -> None: ...
 
 
 class BotRouter:
     def __init__(self, manager: "BotManager"):
-        self.routes: list[Route] = []
+        self.query_routes: dict[Query, Handler] = {}
+        self.command_routes: dict[Command, Handler] = {}
         self.manager = manager
 
-    def create_route(
+    def create_command_route(
         self,
-        route_str: str,
-        func: Callable[["BotManager", UpdateObj, list | None], None],
+        command: Command,
+        func: Handler,
     ) -> None:
-        self.routes.append(
-            Route(
-                route_str=route_str,
-                action=func,
-            )
-        )
+        self.command_routes[command] = func
 
-    async def navigate(self, update: UpdateObj) -> None:
+    def create_query_route(
+        self,
+        query: Query,
+        func: Handler,
+    ) -> None:
+        self.query_routes[query] = func
+
+    async def navigate(self, update: UpdateObj, session: AsyncSession) -> None:
         # Бот реагирует только на команды и нажатия на кнопки.
         # Routes делятся на посвященные коммандам и кнопкам.
         # Команды начинаюся с /, а вызовы кнопок идут без префикса.
@@ -45,25 +62,17 @@ class BotRouter:
         if update.message is not None:
             if str(update.message.text).startswith("/"):
                 command = str(update.message.text).split("/")[1]
-                if command in COMMANDS:
-                    route = next(
-                        route
-                        for route in self.routes
-                        if route.route_str == command
-                    )
-                    if route is not None:
-                        await route.action(
-                            update=update,
-                            manager=self.manager,
-                        )
-                    else:
-                        raise CommandRouteNotFoundError(command)
+                try:
+                    handler = self.command_routes[command]
+                except KeyError as e:
+                    raise CommandRouteNotFoundError(command) from e
+                else:
+                    await handler(self.manager, update, session)
         elif update.callback_query is not None:
             query = str(update.callback_query.data).split("/")[0]
-            if query in QUERIES:
-                route = next(
-                    route for route in self.routes if route.route_str == query
-                )
-                await route.action(update=update, manager=self.manager)
-                if route is None:
-                    raise QueryRouteNotFoundError
+            try:
+                handler = self.query_routes[query]
+            except KeyError as e:
+                raise QueryRouteNotFoundError(query) from e
+            else:
+                await handler(self.manager, update, session)

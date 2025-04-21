@@ -179,7 +179,7 @@ class UpdateObj:
     callback_query: CallbackQuery | None = None
 
     @property
-    def chat_id(self):
+    def chat_id(self) -> int:
         if self.message is not None:
             return self.message.chat.id
         if self.callback_query is not None:
@@ -187,7 +187,7 @@ class UpdateObj:
         return None
 
     @property
-    def tg_id(self):
+    def tg_id(self) -> int:
         if self.message is not None:
             return self.message.from_.id
         if self.callback_query is not None:
@@ -195,7 +195,7 @@ class UpdateObj:
         return None
 
     @property
-    def username(self):
+    def username(self) -> str:
         if self.message is not None:
             return self.message.from_.username
         if self.callback_query is not None:
@@ -203,7 +203,7 @@ class UpdateObj:
         return None
 
     @property
-    def first_name(self):
+    def first_name(self) -> str:
         if self.message is not None:
             return self.message.from_.first_name
         if self.callback_query is not None:
