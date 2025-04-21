@@ -1,7 +1,8 @@
-import typing
+import typing, enum
 
 from app.blackjack.models import GameSessionStatus, ParticipantStatus
 from app.store.tg_api.dataclasses import UpdateObj
+
 
 if typing.TYPE_CHECKING:
     from app.store.bot.manager import BotManager
@@ -39,9 +40,7 @@ async def stop_handler(
     await manager.send_reply(chat_id=chat_id, reply_name=reply_name)
 
 
-async def players_num_handler(
-    manager: "BotManager", update: UpdateObj, params: list | None = None
-) -> None:
+async def players_num_handler(manager: "BotManager", update: UpdateObj) -> None:
     chat_id = update.callback_query.message.chat.id
     users_num = int(update.callback_query.data.split("/")[1])
     reply_name = "inviting"
@@ -65,9 +64,7 @@ async def players_num_handler(
             await manager.send_reply(chat_id=chat_id, reply_name=reply_name)
 
 
-async def bet_handler(
-    manager: "BotManager", update: UpdateObj, params: list | None = None
-) -> None:
+async def bet_handler(manager: "BotManager", update: UpdateObj) -> None:
     chat_id = update.callback_query.message.chat.id
     tg_id = update.callback_query.from_.id
     username = update.callback_query.from_.username

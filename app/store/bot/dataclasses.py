@@ -11,6 +11,8 @@ if typing.TYPE_CHECKING:
 
 from app.store.tg_api.dataclasses import Base
 
+C = typing.TypeVar("C", bound="Cards")
+
 
 @dataclass
 class Route:
@@ -53,22 +55,21 @@ class CardSuit(enum.StrEnum):
     DIAMONDS = "♦"
 
 
-@dataclass
-class CardName(enum.Enum):
-    ONE = 1
-    TWO = 2
-    THREE = 3
-    FOUR = 4
-    FIVE = 5
-    SIX = 6
-    SEVEN = 7
-    EIGHT = 8
-    NINE = 9
-    TEN = 10
-    KING = 11
-    QUEEN = 12
-    JACK = 13
-    ACE = 14
+class CardName(enum.StrEnum):
+    ONE = "1"
+    TWO = "2"
+    THREE = "3"
+    FOUR = "4"
+    FIVE = "5"
+    SIX = "6"
+    SEVEN = "7"
+    EIGHT = "8"
+    NINE = "9"
+    TEN = "10"
+    KING = "Король"
+    QUEEN = "Королева"
+    JACK = "Валет"
+    ACE = "Туз"
 
 
 @dataclass
@@ -81,3 +82,9 @@ class Card(Base):
 @dataclass
 class Cards(Base):
     cards: list[Card] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return Cards.Schema().dump(self.cards)
+
+    def from_dict(self, cards: dict) -> C:
+        return Cards.Schema().load(cards)

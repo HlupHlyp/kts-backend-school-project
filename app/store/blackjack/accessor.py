@@ -1,6 +1,6 @@
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from sqlalchemy.sql import text
 
 from app.base.base_accessor import BaseAccessor
@@ -10,6 +10,11 @@ from app.blackjack.models import (
     ParticipantModel,
     ParticipantStatus,
     PlayerModel,
+)
+from app.store.bot.exceptions import (
+    GameSessionNotFoundError,
+    ParticipantNotFoundError,
+    PlayerNotFoundError,
 )
 from app.store.bot.dataclasses import Cards
 
@@ -50,7 +55,7 @@ class BlackjackAccessor(BaseAccessor):
             chat_id=chat_id, session=session
         )
         if game_session is None:
-            raise Exception(f"Сессия для чата '{chat_id}' не найдена")
+            raise GameSessionNotFoundError(chat_id)
         return game_session
 
     async def set_game_session_users_num(
@@ -96,7 +101,7 @@ class BlackjackAccessor(BaseAccessor):
     ) -> PlayerModel:
         player = await self.get_player_by_tg_id(tg_id=tg_id, session=session)
         if player is None:
-            raise Exception(f"Игрок c tg_id:'{tg_id}' не участвует в сессии")
+            raise PlayerNotFoundError(tg_id)
         return player
 
     async def get_participant_by_tg_and_chat_id(
@@ -144,7 +149,7 @@ class BlackjackAccessor(BaseAccessor):
         return await session.scalar(
             select(ParticipantModel)
             .where(ParticipantModel.id == participant_id)
-            .options(selectinload(ParticipantModel.player))
+            .options(joinedload(ParticipantModel.player))
         )
 
     async def check_participant_by_id(
@@ -154,7 +159,7 @@ class BlackjackAccessor(BaseAccessor):
             participant_id=participant_id, session=session
         )
         if participant is None:
-            raise Exception(f"Участник c id:'{participant_id}' не существует")
+            raise ParticipantNotFoundError(participant_id)
         return participant
 
     async def set_participant_status(
@@ -196,12 +201,7 @@ class BlackjackAccessor(BaseAccessor):
             chat_id=chat_id, session=session
         )
         expected_users_num = game_session.num_users
-        num_participants = await session.scalar(
-            text(
-                f"select count(id) from participants where game_session_id="
-                f"{game_session.id}"
-            )
-        )
+        num_participants = await session.scalar(func.count(GameSessionModel.id))
         return expected_users_num == num_participants
 
     async def set_participant_cards(
@@ -213,7 +213,7 @@ class BlackjackAccessor(BaseAccessor):
         await session.execute(
             update(ParticipantModel)
             .where(ParticipantModel.id == participant_id)
-            .values(right_hand=Cards.Schema().dump(cards))
+            .values(right_hand=cards.to_dict(cards))
         )
 
     async def get_participant_cards(
@@ -222,4 +222,4 @@ class BlackjackAccessor(BaseAccessor):
         participant = await self.check_participant_by_id(
             participant_id=participant_id, session=session
         )
-        return Cards.Schema().load(participant.right_hand)
+        return Cards.from_dict(participant.right_hand)

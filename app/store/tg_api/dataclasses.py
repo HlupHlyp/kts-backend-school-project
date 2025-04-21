@@ -107,7 +107,7 @@ class Sticker(File):
 
 
 @dataclass
-class Animation(Document, Photo, File):
+class Animation(Document, Photo):
     duration: int
 
 

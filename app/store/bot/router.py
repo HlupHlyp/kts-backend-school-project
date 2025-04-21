@@ -3,6 +3,19 @@ from collections.abc import Callable
 
 from app.store.bot.dataclasses import Route
 from app.store.tg_api.dataclasses import UpdateObj
+from app.store.bot.exceptions import (
+    CommandRouteNotFoundError,
+    QueryRouteNotFoundError,
+)
+
+
+REPLY_TEMPLATES: set[str] = {
+    "player_num_setting",
+    "inviting",
+    "starting_game",
+    "stopping_game",
+    "session_already_started",
+}
 
 COMMANDS: set[str] = {"start@SC17854_bot", "stop@SC17854_bot"}
 
@@ -51,14 +64,13 @@ class BotRouter:
                             manager=self.manager,
                         )
                     else:
-                        self.manager.logger.error(
-                            "Command's route hasn't been found"
-                        )
-                        raise Exception
+                        raise CommandRouteNotFoundError(command)
         elif update.callback_query is not None:
             query = str(update.callback_query.data).split("/")[0]
-            route = next(
-                route for route in self.routes if route.route_str == query
-            )
-            if route is not None:
+            if query in REPLY_TEMPLATES:
+                route = next(
+                    route for route in self.routes if route.route_str == query
+                )
                 await route.action(update=update, manager=self.manager)
+            if route is None:
+                raise QueryRouteNotFoundError

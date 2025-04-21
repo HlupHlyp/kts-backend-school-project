@@ -12,6 +12,7 @@ from app.store.bot.handlers import (
     start_handler,
     stop_handler,
 )
+from app.store.bot.exceptions import ReplyTemplateNotFoundError
 from app.store.bot.router import BotRouter
 from app.store.tg_api.dataclasses import SendMessageResponse, UpdateObj
 
@@ -75,9 +76,7 @@ class BotManager:
             if reply.name == reply_name
         )
         if reply_template is None:
-            raise Exception(
-                f"reply_template with name: {reply_name} hasn't been found"
-            )
+            raise ReplyTemplateNotFoundError(reply_template)
         await self.send_message(
             chat_id=chat_id,
             text=reply_template.content.text,
