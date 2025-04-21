@@ -1,0 +1,93 @@
+{
+    "data": [
+        {
+            "name": "PLAYER_NUM_SETTING",
+            "content": {
+                "text": "Выберите сколько игроков вы хотите пригласить?",
+                "markup": {
+                    "inline_keyboard": [
+                        [
+                            {
+                                "text": "1",
+                                "callback_data": "num_players/1"
+                            },
+                            {
+                                "text": "2",
+                                "callback_data": "num_players/2"
+                            },
+                            {
+                                "text": "3",
+                                "callback_data": "num_players/3"
+                            },
+                            {
+                                "text": "4",
+                                "callback_data": "num_players/4"
+                            },
+                            {
+                                "text": "5",
+                                "callback_data": "num_players/5"
+                            },
+                            {
+                                "text": "6",
+                                "callback_data": "num_players/6"
+                            }
+                        ]
+                    ]
+                }
+            }
+        },
+        {
+            "name": "INVITING",
+            "content": {
+                "text": "Чтобы сделать ставку нажмите на кнопку",
+                "markup": {
+                    "inline_keyboard": [
+                        [
+                            {
+                                "text": "1🟡",
+                                "callback_data": "make_a_bet/1"
+                            },
+                            {
+                                "text": "5🟡",
+                                "callback_data": "make_a_bet/5"
+                            },
+                            {
+                                "text": "25🟡",
+                                "callback_data": "make_a_bet/25"
+                            },
+                            {
+                                "text": "100🟡",
+                                "callback_data": "make_a_bet/100"
+                            }
+                        ]
+                    ]
+                }
+            }
+        },
+        {
+            "name": "STARTING_GAME",
+            "content": {
+                "text": "Начинаем",
+                "markup": {}
+            }
+        },
+        {
+            "name": "STOPPING_GAME",
+            "content": {
+                "text": "Игра завершена принудительно",
+                "markup": {}
+            }
+        },
+        {
+            "name": "SESSION_ALREADY_STARTED",
+            "content": {
+                "text": "Игра уже началась, чтобы начать игру заново необходимо ее завершить",
+                "markup": {
+                    "inline_keyboard": [
+                        []
+                    ]
+                }
+            }
+        }
+    ]
+}
