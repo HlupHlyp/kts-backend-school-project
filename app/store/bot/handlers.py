@@ -374,7 +374,7 @@ async def final_calculation(
                 coef=1,
             )
             await manager.send_message(
-                text=f"{participant.username}: +{participant.bet}",
+                text=f"{participant.player.username}: +{participant.bet}",
                 chat_id=game_session.chat_id,
             )
     else:
@@ -393,7 +393,7 @@ async def final_calculation(
                     participant=participant,
                     game_session=game_session,
                     session=session,
-                    coef=-1,
+                    coef=1,
                 )
             else:
                 await change_balance_on_bet_amount(
@@ -401,13 +401,13 @@ async def final_calculation(
                     participant=participant,
                     game_session=game_session,
                     session=session,
-                    coef=1,
+                    coef=-1,
                 )
-                await manager.blackjack.set_participant_status(
-                    participant=participant,
-                    session=session,
-                    status=ParticipantStatus.SLEEPING,
-                )
+            await manager.blackjack.set_participant_status(
+                participant=participant,
+                session=session,
+                status=ParticipantStatus.SLEEPING,
+            )
         # Засыпляем сессию
     await manager.blackjack.set_game_session_status(
         game_session=game_session,
