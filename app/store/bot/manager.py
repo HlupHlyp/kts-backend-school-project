@@ -40,6 +40,7 @@ class BotManager(BaseAccessor):
         self.router.create_command_route(Command.STOP, stop_handler)
         self.router.create_query_route(Query.NUM_PLAYERS, players_num_handler)
         self.router.create_query_route(Query.MAKE_A_BET, bet_handler)
+        self.router.create_query_route(Query.G, bet_handler)
 
     async def connect(self, app: "Application") -> None:
         self.http_session = aiohttp.ClientSession()

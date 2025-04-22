@@ -70,7 +70,7 @@ class Cards(Base):
     cards: list[Card] = field(default_factory=list)
 
     def to_dict(self) -> dict:
-        return Cards.Schema().dump(self.cards)
+        return Cards.Schema().dump(self)
 
     def from_dict(self, cards: dict) -> "Cards":
         return Cards.Schema().load(cards)

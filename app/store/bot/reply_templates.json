@@ -88,6 +88,26 @@
                     ]
                 }
             }
+        },
+        {
+            "name": "GET_CARD_OR_ENOUGH",
+            "content": {
+                "text": "Выберите действие:",
+                "markup": {
+                    "inline_keyboard": [
+                        [
+                            {
+                                "text": "Еще карту",
+                                "callback_data": "get_card/"
+                            },
+                            {
+                                "text": "Хватит",
+                                "callback_data": "enough/"
+                            }
+                        ]
+                    ]
+                }
+            }
         }
     ]
 }
