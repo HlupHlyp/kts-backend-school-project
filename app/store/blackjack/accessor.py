@@ -147,15 +147,15 @@ class BlackjackAccessor(BaseAccessor):
             session=session, tg_id=tg_id, chat_id=chat_id
         )
 
-    async def get_game_session_participants(
+    async def get_participants_for_update(
         self,
         session: AsyncSession,
         game_session: GameSessionModel,
     ) -> GameSessionModel | None:
         result = await session.scalar(
-            select(ParticipantModel).where(
-                ParticipantModel.game_session_id == game_session.id
-            )
+            select(ParticipantModel)
+            .where(ParticipantModel.game_session_id == game_session.id)
+            .options(selectinload(ParticipantModel.player))
         )
         if result is None:
             raise GameSessionNotFoundError
@@ -239,3 +239,15 @@ class BlackjackAccessor(BaseAccessor):
         )
         if result.rowcount == 0:
             raise ParticipantNotFoundError
+
+    async def set_dealer_cards(
+        self,
+        game_session: GameSessionModel,
+        cards: Cards,
+        session: AsyncSession,
+    ) -> None:
+        await session.execute(
+            update(GameSessionModel)
+            .where(GameSessionModel.id == game_session.id)
+            .values(dealer_cards=Cards.Schema().dump(cards))
+        )
