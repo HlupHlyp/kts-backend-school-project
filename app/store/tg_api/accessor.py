@@ -38,7 +38,6 @@ class TgApiAccessor(BaseAccessor):
             params["timeout"] = timeout
         async with session.get(url, params=params) as resp:
             res_dict = await resp.json()
-            print(f"Результаты приема: {res_dict}")
         return GetUpdatesResponse.Schema().load(res_dict, partial=True)
 
     async def connect(self, app: "Application") -> None:

@@ -13,6 +13,7 @@ from app.blackjack.models import (
 from app.store.bot.dataclasses import Cards
 from app.store.bot.exceptions import (
     GameSessionNotFoundError,
+    NoActiveParticipantsError,
     ParticipantNotFoundError,
     PlayerNotFoundError,
 )
@@ -158,7 +159,10 @@ class BlackjackAccessor(BaseAccessor):
     ) -> list[ParticipantModel]:
         result = await session.scalars(
             select(ParticipantModel)
-            .where(ParticipantModel.game_session_id == game_session.id)
+            .where(
+                ParticipantModel.game_session_id == game_session.id,
+                ParticipantModel.status != ParticipantStatus.SLEEPING,
+            )
             .options(selectinload(ParticipantModel.player))
         )
         if result is None:
@@ -262,16 +266,29 @@ class BlackjackAccessor(BaseAccessor):
         participants = await self.get_participants_for_update(
             session=session, game_session=game_session
         )
-        new_poll_participant = next(
-            participant
-            for participant in participants
-            if participant.status == ParticipantStatus.ACTIVE
+        try:
+            new_poll_participant = next(
+                participant
+                for participant in participants
+                if participant.status == ParticipantStatus.ACTIVE
+            )
+        except StopIteration as e:
+            raise NoActiveParticipantsError from e
+        else:
+            await self.set_participant_status(
+                participant=new_poll_participant,
+                status=ParticipantStatus.POLLING,
+                session=session,
+            )
+            return new_poll_participant
+
+    async def change_balance_on_bet_amount(
+        self, participant: ParticipantModel, session: AsyncSession, coef: int
+    ) -> None:
+        result = await session.execute(
+            update(PlayerModel)
+            .where(PlayerModel.id == participant.player.id)
+            .values(balance=participant.player.balance + participant.bet * coef)
         )
-        if new_poll_participant is None:
-            raise Exception
-        await self.set_participant_status(
-            participant=new_poll_participant,
-            status=ParticipantStatus.POLLING,
-            session=session,
-        )
-        return new_poll_participant
+        if result.rowcount == 0:
+            raise PlayerNotFoundError(participant.player.tg_id)

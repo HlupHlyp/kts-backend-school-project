@@ -11,17 +11,19 @@ from app.store.bot.dataclasses import Markup, ReplyTemplates
 from app.store.bot.exceptions import ReplyTemplateNotFoundError
 from app.store.bot.handlers import (
     bet_handler,
+    enough_handler,
+    get_card_handler,
     players_num_handler,
     start_handler,
     stop_handler,
-    get_card_handler,
-    enough_handler,
 )
 from app.store.bot.router import BotRouter, Command, Query
 from app.store.tg_api.dataclasses import SendMessageResponse
 
 if typing.TYPE_CHECKING:
     from app.web.app import Application
+
+NUM_WORKERS = 3
 
 
 class BotManager(BaseAccessor):
@@ -95,15 +97,17 @@ class BotManager(BaseAccessor):
         )
 
     async def _worker(self):
-        while True:
-            async with self.app.database.session() as db_session:
+        async with self.app.database.session() as db_session:
+            while True:
                 update = await self.tg_api.queue.get()
-                print(f"Объект в очереди: {update}")
                 await self.router.navigate(update, db_session)
 
     def start(self):
         self.tg_api.logger.info("start working")
-        self.worker_task = asyncio.create_task(self._worker())
+        i = 0
+        while i < NUM_WORKERS:
+            self.worker_task = asyncio.create_task(self._worker())
+            i += 1
 
     async def disconnect(self, app: "Application") -> None:
         await self.worker_task

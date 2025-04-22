@@ -125,6 +125,7 @@ class NewParticipant:
     first_name: str
     username: str
     last_name: str | None = None
+    language_code: str | None = None
 
 
 @dataclass
@@ -163,6 +164,29 @@ class Message:
 
 
 @dataclass
+class User:
+    id: int
+    is_bot: bool
+    first_name: str
+    username: str
+
+
+@dataclass
+class ChatMember:
+    user: User
+    status: str
+
+
+@dataclass
+class MyChatMember:
+    chat: Chat
+    from_: MessageFrom = field(metadata={"data_key": "from"})
+    date: int
+    new_chat_member: ChatMember
+    old_chat_member: ChatMember
+
+
+@dataclass
 class CallbackQuery:
     id: int
     from_: MessageFrom = field(metadata={"data_key": "from"})
@@ -177,6 +201,7 @@ class UpdateObj:
     message: Message | None = None
     edited_message: Message | None = None
     callback_query: CallbackQuery | None = None
+    my_chat_member: MyChatMember | None = None
 
     @property
     def chat_id(self) -> int:
