@@ -64,26 +64,30 @@ class BlackjackAccessor(BaseAccessor):
         return result
 
     async def set_game_session_users_num(
-        self, session: AsyncSession, chat_id: int, users_num: int
+        self,
+        session: AsyncSession,
+        game_session: GameSessionModel,
+        users_num: int,
     ) -> None:
-        result = await session.execute(
+        await session.execute(
             update(GameSessionModel)
-            .where(GameSessionModel.chat_id == chat_id)
+            .where(GameSessionModel.id == game_session.id)
             .values(num_users=users_num)
         )
-        if result.rowcount == 0:
-            raise GameSessionNotFoundError(chat_id)
 
     async def set_game_session_status(
-        self, session: AsyncSession, chat_id: int, status: GameSessionStatus
+        self,
+        session: AsyncSession,
+        game_session: GameSessionModel,
+        status: GameSessionStatus,
     ) -> None:
         result = await session.execute(
             update(GameSessionModel)
-            .where(GameSessionModel.chat_id == chat_id)
+            .where(GameSessionModel.id == game_session.id)
             .values(status=status)
         )
         if result.rowcount == 0:
-            raise GameSessionNotFoundError(chat_id)
+            raise GameSessionNotFoundError
 
     async def get_player_by_tg_id(
         self, session: AsyncSession, tg_id: int
@@ -251,3 +255,23 @@ class BlackjackAccessor(BaseAccessor):
             .where(GameSessionModel.id == game_session.id)
             .values(dealer_cards=cards.to_dict())
         )
+
+    async def switch_poll_participant(
+        self, game_session: GameSessionStatus, session: AsyncSession
+    ) -> ParticipantModel:
+        participants = await self.get_participants_for_update(
+            session=session, game_session=game_session
+        )
+        new_poll_participant = next(
+            participant
+            for participant in participants
+            if participant.status == ParticipantStatus.ACTIVE
+        )
+        if new_poll_participant is None:
+            raise Exception
+        await self.set_participant_status(
+            participant=new_poll_participant,
+            status=ParticipantStatus.POLLING,
+            session=session,
+        )
+        return new_poll_participant

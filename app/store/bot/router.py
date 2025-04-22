@@ -17,6 +17,8 @@ if typing.TYPE_CHECKING:
 class Query(enum.StrEnum):
     NUM_PLAYERS = "num_players"
     MAKE_A_BET = "make_a_bet"
+    GET_CARD = "get_card"
+    ENOUGH = "enough"
 
 
 class Command(enum.StrEnum):
@@ -59,14 +61,17 @@ class BotRouter:
         # ищет route для него.
         # Если пришел callback, то просто ищет route.
         # Также здесь выделяются параметры
+        print(f"Объект в навигаторе: {update}")
         if update.message is not None:
             if str(update.message.text).startswith("/"):
                 command = str(update.message.text).split("/")[1]
+                print(f"Команда: {command}")
                 try:
                     handler = self.command_routes[command]
                 except KeyError as e:
                     raise CommandRouteNotFoundError(command) from e
                 else:
+                    print(f"Хэндлер: {handler}")
                     await handler(self.manager, update, session)
         elif update.callback_query is not None:
             query = str(update.callback_query.data).split("/")[0]

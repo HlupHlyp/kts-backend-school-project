@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.blackjack.models import GameSessionStatus, ParticipantStatus
 from app.store.tg_api.dataclasses import UpdateObj
 from app.store.bot.dataclasses import Cards, Card, CardName, CardSuit
+from app.blackjack.models import GameSessionModel
+
 
 if typing.TYPE_CHECKING:
     from app.store.bot.manager import BotManager
@@ -24,7 +26,6 @@ def get_card() -> Card:
     suit = random.choice(list(CardSuit))
     name = random.choice(list(CardName))
     weight = None
-    print(suit, name)
     if name.value in (
         CardName.QUEEN.value,
         CardName.KING.value,
@@ -32,14 +33,10 @@ def get_card() -> Card:
         CardName.TEN.value,
     ):
         weight = 10
-        print(CardName.QUEEN.value)
-        print
     elif name == CardName.ACE:
         weight = 11
-        print("!!")
     else:
         weight = int(name.value)
-        print("!!!")
     return Card(suit=suit, name=CardName(name), weight=weight)
 
 
@@ -74,6 +71,7 @@ async def start_handler(
     game_session = await manager.blackjack.get_or_create_game_session(
         chat_id=chat_id, session=session
     )
+    print(f"Игровая сессия {game_session.status}")
     if game_session.status != GameSessionStatus.SLEEPING:
         await manager.send_reply(
             chat_id=chat_id,
@@ -81,7 +79,7 @@ async def start_handler(
         )
     else:
         await manager.blackjack.set_game_session_status(
-            chat_id=chat_id,
+            game_session=game_session,
             status=GameSessionStatus.WAITING_FOR_NUM,
             session=session,
         )
@@ -108,15 +106,19 @@ async def players_num_handler(
     game_session = await manager.blackjack.get_game_session_for_update(
         chat_id=chat_id, session=session
     )
+    print(f"Игровая сессия {game_session.status}")
     if game_session.status == GameSessionStatus.WAITING_FOR_NUM:
+        print(f"Игровая сессия {game_session.status}")
         await manager.blackjack.set_game_session_users_num(
-            chat_id=chat_id, users_num=users_num, session=session
+            game_session=game_session, users_num=users_num, session=session
         )
+        print(f"Игровая сессия {game_session.status}")
         await manager.blackjack.set_game_session_status(
-            chat_id=chat_id,
+            game_session=game_session,
             status=GameSessionStatus.WAITING_FOR_USERS,
             session=session,
         )
+        print(f"Игровая сессия {game_session.status}")
         await manager.send_message(
             chat_id=chat_id, text=f"Число участников: {users_num}"
         )
@@ -134,7 +136,13 @@ async def bet_handler(
     participant = await manager.blackjack.get_or_create_participant(
         tg_id=tg_id, chat_id=chat_id, username=username, session=session
     )
-    if participant.status == ParticipantStatus.SLEEPING:
+    game_session = await manager.blackjack.get_game_session_for_update(
+        chat_id=chat_id, session=session
+    )
+    if (
+        participant.status == ParticipantStatus.SLEEPING
+        and game_session.status == GameSessionStatus.WAITING_FOR_USERS
+    ):
         await manager.blackjack.set_participant_bet(
             participant=participant, bet=int(bet), session=session
         )
@@ -148,9 +156,6 @@ async def bet_handler(
             text=f" {participant.player.username} поставил: {bet}🟡",
         )
         await session.commit()
-        game_session = await manager.blackjack.get_game_session_for_update(
-            chat_id=chat_id, session=session
-        )
         enough_gathered = await manager.blackjack.is_participants_gathered(
             game_session=game_session, session=session
         )
@@ -192,7 +197,7 @@ async def bet_handler(
                 chat_id=chat_id,
             )
             await manager.blackjack.set_game_session_status(
-                chat_id=chat_id,
+                game_session=game_session,
                 status=GameSessionStatus.POLLING,
                 session=session,
             )
@@ -205,98 +210,172 @@ async def bet_handler(
             participants = await manager.blackjack.get_participants_for_update(
                 session=session, game_session=game_session
             )
-            participant = next(
-                participant
-                for participant in participants
-                if participant.status == ParticipantStatus.ACTIVE
+            game_session = await manager.blackjack.get_game_session_for_update(
+                chat_id=chat_id, session=session
             )
-            await manager.blackjack.set_participant_status(
-                participant=participant,
-                session=session,
-                status=ParticipantStatus.POLLING,
-            )
-            await manager.send_message(
-                text=f"{participant.player.username}, ваш ход",
-                chat_id=chat_id,
-            )
-            await manager.send_reply(
-                ReplyTemplate.GET_CARD_OR_ENOUGH, chat_id=chat_id
+            await switch_poll_participant(
+                manager=manager, game_session=game_session, session=session
             )
             await session.commit()
 
 
-async def get_card_handler(manager: "BotManager", update: UpdateObj) -> None:
+async def get_card_handler(
+    manager: "BotManager", update: UpdateObj, session: AsyncSession
+) -> None:
     chat_id = update.callback_query.message.chat.id
     tg_id = update.callback_query.from_.id
     username = update.callback_query.from_.username
-    async with manager.app.database.session() as session:
-        participant = await manager.blackjack.get_participant_for_update(
-            tg_id=tg_id, chat_id=chat_id, session=session
+    participant = await manager.blackjack.get_participant_for_update(
+        tg_id=tg_id, chat_id=chat_id, session=session
+    )
+    if participant.status == ParticipantStatus.POLLING:
+        cards = Cards.Schema().load(participant.right_hand)
+        card = get_card()
+        await manager.send_message(
+            text=f"{card.name.value}{card.suit.value}",
+            chat_id=chat_id,
         )
-        if participant.status == ParticipantStatus.POLLING:
-            cards = await Cards.from_dict(participant.right_hand)
-            card = get_card()
+        cards.cards.append(card)
+        await manager.blackjack.set_participant_cards(
+            participant=participant, session=session, cards=cards
+        )
+        await session.commit()
+        if get_cards_cost(cards) > 21:
             await manager.send_message(
-                text=f"{card.name.value}{card.suit.value}",
+                text=f"{username}, Немного перебрал",
                 chat_id=chat_id,
             )
-            cards.cards.append(card)
-            await manager.blackjack.set_participant_cards(
-                participant=participant, session=session, cards=cards
+            await manager.blackjack.set_participant_status(
+                participant=participant,
+                status=ParticipantStatus.SLEEPING,
+                session=session,
             )
-            await session.commit()
-            if get_cards_cost(cards) > 21:
-                await manager.send_message(
-                    text=f"{username}, Немного перебрал",
-                    chat_id=chat_id,
-                )
-
-
-""" 
-    async def enough_handler(manager: "BotManager", update: UpdateObj) -> None:
-        chat_id = update.callback_query.message.chat.id
-        tg_id = update.callback_query.from_.id
-        flag = False
-        async with manager.app.database.session() as session:
-            participant = await manager.blackjack.get_participant_by_tg_and_chat_id(
-                tg_id=tg_id, chat_id=chat_id, session=session
+            game_session = await manager.blackjack.get_game_session_for_update(
+                chat_id=chat_id, session=session
             )
-            if participant.status == ParticipantStatus.POLLING:
-                flag = True
-                await manager.blackjack.set_participant_status(
-                    participant_id=participant.id,
-                    status=ParticipantStatus.ASSEMBLED,
-                    session=session,
+            try:
+                await switch_poll_participant(
+                    manager=manager, game_session=game_session, session=session
                 )
-            await session.commit()
-        async with manager.app.database.session() as session:
-            if flag:
-                game_session = await manager.blackjack.check_game_session(
-                    chat_id=chat_id, session=session
+            except Exception:
+                await final_calculation(
+                    manager=manager, game_session=game_session, session=session
                 )
-                try:
-                    new_poll_participant = next(
-                        participant
-                        for new_poll_participant in game_session.participants
-                        if new_poll_participant.status == ParticipantStatus.ACTIVE
-                    )
-                except StopIteration:
-                    await manager.blackjack.set_game_session_status(
-                        chat_id=chat_id,
-                        status=GameSessionStatus.SLEEPING,
-                        session=session,
-                    )
-
-                else:
-                    await manager.blackjack.set_participant_status(
-                        participant_id=new_poll_participant.id,
-                        status=ParticipantStatus.POLLING,
-                        session=session,
-                    )
-                    await manager.send_message(
-                        text=f"{new_poll_participant.player.username}, ваш ход",
-                        chat_id=chat_id,
-                    )
-                    await manager.send_reply("get_card_or_enough", chat_id=chat_id)
                 await session.commit()
-"""
+
+
+async def enough_handler(
+    manager: "BotManager", update: UpdateObj, session: AsyncSession
+) -> None:
+    chat_id = update.callback_query.message.chat.id
+    tg_id = update.callback_query.from_.id
+    flag = False
+    participant = await manager.blackjack.get_participant_for_update(
+        tg_id=tg_id, chat_id=chat_id, session=session
+    )
+    if participant.status == ParticipantStatus.POLLING:
+        flag = True
+        await manager.blackjack.set_participant_status(
+            participant=participant,
+            status=ParticipantStatus.ASSEMBLED,
+            session=session,
+        )
+    await session.commit()
+    if flag:
+        game_session = await manager.blackjack.get_game_session_for_update(
+            chat_id=chat_id, session=session
+        )
+        try:
+            await switch_poll_participant(
+                manager=manager, game_session=game_session, session=session
+            )
+        except Exception:
+            await session.commit()
+            await final_calculation(
+                manager=manager, game_session=game_session, session=session
+            )
+            await session.commit()
+        else:
+            await session.commit()
+
+
+async def switch_poll_participant(
+    manager: "BotManager", game_session: GameSessionModel, session: AsyncSession
+) -> None:
+    new_poll_participant = await manager.blackjack.switch_poll_participant(
+        session=session, game_session=game_session
+    )
+    await manager.send_message(
+        text=f"{new_poll_participant.player.username}, ваш ход",
+        chat_id=game_session.chat_id,
+    )
+    await manager.send_reply(
+        ReplyTemplate.GET_CARD_OR_ENOUGH, chat_id=game_session.chat_id
+    )
+
+
+async def final_calculation(
+    manager: "BotManager", game_session: GameSessionModel, session: AsyncSession
+) -> None:
+    manager.logger.info("final_calculation")
+    dealer_cards = Cards.Schema().load(game_session.dealer_cards)
+    await manager.send_message(
+        text="Ход дилера:",
+        chat_id=game_session.chat_id,
+    )
+    # Дораздаем карты дилеру
+    while get_cards_cost(dealer_cards) < 17:
+        print(get_cards_cost(dealer_cards))
+        card = get_card()
+        await manager.send_message(
+            text=f"{card.name.value}{card.suit.value}",
+            chat_id=game_session.chat_id,
+        )
+        dealer_cards.cards.append(card)
+    # Проверяем не перербрал ли дилер
+    if get_cards_cost(dealer_cards) > 21:
+        await manager.send_message(
+            text="Дилер немного перебрал",
+            chat_id=game_session.chat_id,
+        )
+        participants = await manager.blackjack.get_participants_for_update(
+            game_session=game_session, session=session
+        )
+        # Если перебрал, то просто раздаем вознаграждения
+        for participant in participants:
+            if participant.status == ParticipantStatus.ASSEMBLED:
+                await manager.send_message(
+                    text=f"{participant.username}: +{participant.bet}",
+                    chat_id=game_session.chat_id,
+                )
+    else:
+        participants = await manager.blackjack.get_participants_for_update(
+            game_session=game_session, session=session
+        )
+        # Если не перебрал, то сравниваем стоимость карт каждого из игроков
+        # На этом основании определяем выигрыш или проигрыш
+        for participant in participants:
+            if participant.status == ParticipantStatus.ASSEMBLED:
+                if get_cards_cost(
+                    Cards.Schema().load(participant.right_hand)
+                ) > get_cards_cost(dealer_cards):
+                    await manager.send_message(
+                        text=f"{participant.player.username}: +{participant.bet}",
+                        chat_id=game_session.chat_id,
+                    )
+                else:
+                    await manager.send_message(
+                        text=f"{participant.player.username}: -{participant.bet}",
+                        chat_id=game_session.chat_id,
+                    )
+                await manager.blackjack.set_participant_status(
+                    participant=participant,
+                    session=session,
+                    status=ParticipantStatus.SLEEPING,
+                )
+        # Засыпляем сессию
+    await manager.blackjack.set_game_session_status(
+        game_session=game_session,
+        status=GameSessionStatus.SLEEPING,
+        session=session,
+    )

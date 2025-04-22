@@ -14,6 +14,8 @@ from app.store.bot.handlers import (
     players_num_handler,
     start_handler,
     stop_handler,
+    get_card_handler,
+    enough_handler,
 )
 from app.store.bot.router import BotRouter, Command, Query
 from app.store.tg_api.dataclasses import SendMessageResponse
@@ -40,7 +42,8 @@ class BotManager(BaseAccessor):
         self.router.create_command_route(Command.STOP, stop_handler)
         self.router.create_query_route(Query.NUM_PLAYERS, players_num_handler)
         self.router.create_query_route(Query.MAKE_A_BET, bet_handler)
-        self.router.create_query_route(Query.G, bet_handler)
+        self.router.create_query_route(Query.GET_CARD, get_card_handler)
+        self.router.create_query_route(Query.ENOUGH, enough_handler)
 
     async def connect(self, app: "Application") -> None:
         self.http_session = aiohttp.ClientSession()
@@ -95,8 +98,12 @@ class BotManager(BaseAccessor):
         while True:
             async with self.app.database.session() as db_session:
                 update = await self.tg_api.queue.get()
+                print(f"Объект в очереди: {update}")
                 await self.router.navigate(update, db_session)
 
     def start(self):
         self.tg_api.logger.info("start working")
         self.worker_task = asyncio.create_task(self._worker())
+
+    async def disconnect(self, app: "Application") -> None:
+        await self.worker_task
