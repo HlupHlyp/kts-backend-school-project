@@ -97,17 +97,18 @@ class BotManager(BaseAccessor):
         )
 
     async def _worker(self):
-        async with self.app.database.session() as db_session:
-            while True:
+        while True:
+            async with self.app.database.session() as db_session:
                 update = await self.tg_api.queue.get()
                 await self.router.navigate(update, db_session)
 
     def start(self):
         self.tg_api.logger.info("start working")
-        i = 0
-        while i < NUM_WORKERS:
-            self.worker_task = asyncio.create_task(self._worker())
-            i += 1
+        self.worker_tasks = [
+            asyncio.create_task(self._worker()) for _ in range(NUM_WORKERS)
+        ]
 
     async def disconnect(self, app: "Application") -> None:
-        await self.worker_task
+        await self.queue.join()
+        for worker_task in self.worker_tasks:
+            worker_task.cancel()

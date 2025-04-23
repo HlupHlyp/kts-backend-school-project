@@ -68,12 +68,12 @@ class BlackjackAccessor(BaseAccessor):
         self,
         session: AsyncSession,
         game_session: GameSessionModel,
-        users_num: int,
+        num_users: int,
     ) -> None:
         await session.execute(
             update(GameSessionModel)
             .where(GameSessionModel.id == game_session.id)
-            .values(num_users=users_num)
+            .values(num_users=num_users)
         )
 
     async def set_game_session_status(
@@ -163,7 +163,8 @@ class BlackjackAccessor(BaseAccessor):
                 ParticipantModel.game_session_id == game_session.id,
                 ParticipantModel.status != ParticipantStatus.SLEEPING,
             )
-            .options(selectinload(ParticipantModel.player))
+            .options(joinedload(ParticipantModel.player))
+            .with_for_update(of=ParticipantModel)
         )
         if result is None:
             raise GameSessionNotFoundError
@@ -288,7 +289,7 @@ class BlackjackAccessor(BaseAccessor):
         result = await session.execute(
             update(PlayerModel)
             .where(PlayerModel.id == participant.player.id)
-            .values(balance=participant.player.balance + participant.bet * coef)
+            .values(balance=PlayerModel.balance + participant.bet * coef)
         )
         if result.rowcount == 0:
             raise PlayerNotFoundError(participant.player.tg_id)

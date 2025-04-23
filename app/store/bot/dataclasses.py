@@ -64,6 +64,9 @@ class Card(Base):
     name: CardName
     weight: int
 
+    def __str__(self):
+        return f"{self.name.value}{self.suit.value}"
+
 
 @dataclass
 class Cards(Base):
@@ -74,3 +77,13 @@ class Cards(Base):
 
     def from_dict(self, cards: dict) -> "Cards":
         return Cards.Schema().load(cards)
+
+    def __str__(self):
+        message = ""
+        for card in self.cards:
+            message += f"{card.name.value}{card.suit.value}"
+            message += "  "
+        return message
+
+    def add_card(self, card: Card) -> None:
+        self.cards.append(card)
