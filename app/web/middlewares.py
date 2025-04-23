@@ -30,7 +30,7 @@ async def error_handling_middleware(request: "Request", handler):
     except NoResultFound as e:
         return error_json_response(
             http_status=404,
-            status='not_found',
+            status="not_found",
             message=str(e),
         )
     except HTTPUnprocessableEntity as e:
