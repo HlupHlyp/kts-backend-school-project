@@ -7,7 +7,7 @@ from aiohttp_apispec import (
 )
 from aiohttp_session import get_session, new_session
 
-from app.admin.schemes import AdminSchema, AdminRequestSchema
+from app.admin.schemes import AdminRequestSchema, AdminSchema
 from app.web.app import View
 from app.web.mixins import AuthRequiredMixin
 from app.web.utils import json_response
@@ -17,6 +17,7 @@ class AdminLoginView(View):
     @request_schema(AdminRequestSchema)
     @response_schema(AdminSchema, 200)
     async def post(self):
+        """Просто логин админа"""
         data = await self.request.json()
         if "email" not in data:
             raise HTTPBadRequest
@@ -36,6 +37,7 @@ class AdminLoginView(View):
 class AdminLogoutView(AuthRequiredMixin, View):
     @response_schema(AdminSchema, 200)
     async def get(self):
+        """Просто выхода админа"""
         session = await get_session(self.request)
         session["admin_email"] = None
         return json_response(data={"message": "Выход успешно осуществлен"})

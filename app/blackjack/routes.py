@@ -1,6 +1,5 @@
 import typing
 
-
 if typing.TYPE_CHECKING:
     from app.web.app import Application
 

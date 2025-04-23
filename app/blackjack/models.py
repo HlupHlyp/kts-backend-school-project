@@ -102,6 +102,10 @@ class PlayerModel(BaseModel):
 
 
 class AdminModel(BaseModel):
+    """Пока поместил модельку админа сюда, поскольку в app.admin.models alembic
+    ее игнорирует
+    """
+
     __tablename__ = "admins"
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(unique=True)

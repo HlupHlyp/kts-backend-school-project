@@ -1,29 +1,31 @@
-from aiohttp.web_exceptions import HTTPBadRequest, HTTPForbidden
+from json import JSONDecodeError
+
+from aiohttp.web_exceptions import HTTPBadRequest
 from aiohttp_apispec import (
     request_schema,
     response_schema,
 )
-from json import JSONDecodeError
 
 from app.blackjack.schemes import (
-    PlayersListSchema,
-    PlayerSchema,
-    PlayerRequestSchema,
     ChatSchema,
+    PlayerRequestSchema,
+    PlayerSchema,
+    PlayersListSchema,
+)
+from app.store.bot.exceptions import (
+    GameSessionNotFoundError,
+    PlayerNotFoundError,
 )
 from app.web.app import View
 from app.web.mixins import AuthRequiredMixin
 from app.web.utils import json_response
-from app.store.bot.exceptions import (
-    PlayerNotFoundError,
-    GameSessionNotFoundError,
-)
 
 
 class GiveMoneyView(AuthRequiredMixin, View):
     @request_schema(PlayerRequestSchema)
     @response_schema(PlayerSchema, 200)
     async def put(self):
+        """View, позволяющее положить изменить баланс игрока"""
         try:
             data = await self.request.json()
         except JSONDecodeError as e:
@@ -50,6 +52,10 @@ class GiveMoneyView(AuthRequiredMixin, View):
 
 
 class MoneyRatingView(AuthRequiredMixin, View):
+    """View, выдающее рейтинг игроков по балансу
+    с возможностью фильтрации по чату.
+    """
+
     @request_schema(ChatSchema)
     @response_schema(PlayersListSchema, 200)
     async def get(self):
@@ -64,8 +70,8 @@ class MoneyRatingView(AuthRequiredMixin, View):
         try:
             players = await self.store.blackjack.get_money_rating(chat_id)
         except GameSessionNotFoundError as e:
-            print("!!!")
             raise HTTPBadRequest from e
+        players = sorted(players, key=lambda player: player.balance)
         return json_response(
             data={
                 "players": [PlayerSchema().dump(player) for player in players]

@@ -2,10 +2,9 @@ import hashlib
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.blackjack.models import AdminModel
 from app.base.base_accessor import BaseAccessor
+from app.blackjack.models import AdminModel
 
 if TYPE_CHECKING:
     from app.web.app import Application

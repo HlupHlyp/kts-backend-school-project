@@ -309,6 +309,9 @@ class BlackjackAccessor(BaseAccessor):
     async def get_money_rating(
         self, chat_id: int | None = None
     ) -> list[PlayerModel]:
+        """Акксессор для извлечения всех пользователей или по чату.
+        Назван по View, для которого написан
+        """
         async with self.app.database.session() as session:
             if chat_id is None:
                 return await session.scalars(select(PlayerModel))

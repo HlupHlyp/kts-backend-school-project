@@ -453,6 +453,7 @@ async def dealer_finishing(
     manager: "BotManager", game_session: GameSessionModel
 ) -> Cards:
     dealer_cards = Cards.Schema().load(game_session.dealer_cards)
+    """Вынес отдельный handler для добора дилером карт"""
     await manager.send_message(
         text="Ход дилера:",
         chat_id=game_session.chat_id,
