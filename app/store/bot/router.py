@@ -66,12 +66,11 @@ class BotRouter:
         if update.message is not None:
             if str(update.message.text).startswith("/"):
                 command = str(update.message.text).split("/")[1]
-                log = f"Команда: {command}"
-                self.manager.logger.info(log)
+                self.manager.logger.info("Объект в навигаторе: %s", update)
                 if command in [item.value for item in Command]:
                     try:
                         handler = self.command_routes[command]
-                    except Exception as e:
+                    except KeyError as e:
                         raise CommandRouteNotFoundError(command) from e
                     else:
                         log = f"Хэндлер: {handler}"

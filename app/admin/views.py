@@ -21,7 +21,6 @@ class AdminLoginView(View):
         data = await self.request.json()
         if "email" not in data:
             raise HTTPBadRequest
-        admin = None
         admin = await self.store.admins.get_by_email(email=data["email"])
         if not admin:
             raise HTTPForbidden

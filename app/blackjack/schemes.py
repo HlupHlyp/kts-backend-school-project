@@ -14,7 +14,9 @@ class PlayersListSchema(Schema):
 
 class PlayerRequestSchema(Schema):
     username = fields.Str(required=True)
+    amount = fields.Int(required=True)
 
 
 class ChatSchema(Schema):
-    id = fields.Int(required=True)
+    chat_id = fields.Int(required=False)
+    num_players = fields.Int(required=False)

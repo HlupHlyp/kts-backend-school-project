@@ -1,4 +1,4 @@
-from sqlalchemy import func, select, update
+from sqlalchemy import desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -19,6 +19,7 @@ from app.store.bot.exceptions import (
 )
 
 DEFAULT_BALANCE = 10000
+DEFAULT_PLAYERS_NUM = 10000
 
 
 class BlackjackAccessor(BaseAccessor):
@@ -307,22 +308,35 @@ class BlackjackAccessor(BaseAccessor):
                 raise PlayerNotFoundError(None)
 
     async def get_money_rating(
-        self, chat_id: int | None = None
+        self,
+        chat_id: int | None = None,
+        num_players: int | None = DEFAULT_PLAYERS_NUM,
     ) -> list[PlayerModel]:
         """Акксессор для извлечения всех пользователей или по чату.
         Назван по View, для которого написан
         """
         async with self.app.database.session() as session:
             if chat_id is None:
-                return await session.scalars(select(PlayerModel))
+                return await session.scalars(
+                    select(PlayerModel)
+                    .order_by(desc(PlayerModel.balance))
+                    .limit(num_players)
+                )
             game_session = await self.get_game_session_by_chat(
                 session=session, chat_id=chat_id
             )
             if game_session is None:
                 raise GameSessionNotFoundError(chat_id)
-            participants = await session.scalars(
-                select(ParticipantModel)
-                .where(ParticipantModel.game_session_id == game_session.id)
-                .options(joinedload(ParticipantModel.player))
+            return await session.scalars(
+                select(PlayerModel).where(
+                    select(1)
+                    .select_from(ParticipantModel)
+                    .where(
+                        ParticipantModel.player_id == PlayerModel.id,
+                        ParticipantModel.game_session_id == game_session.id,
+                    )
+                    .exists()
+                    .order_by(desc(PlayerModel.balance))
+                    .limit(num_players)
+                )
             )
-            return [participant.player for participant in participants]

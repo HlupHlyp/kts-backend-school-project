@@ -1,10 +1,5 @@
-from json import JSONDecodeError
-
 from aiohttp.web_exceptions import HTTPBadRequest
-from aiohttp_apispec import (
-    request_schema,
-    response_schema,
-)
+from aiohttp_apispec import querystring_schema, request_schema, response_schema
 
 from app.blackjack.schemes import (
     ChatSchema,
@@ -13,7 +8,6 @@ from app.blackjack.schemes import (
     PlayersListSchema,
 )
 from app.store.bot.exceptions import (
-    GameSessionNotFoundError,
     PlayerNotFoundError,
 )
 from app.web.app import View
@@ -26,23 +20,14 @@ class GiveMoneyView(AuthRequiredMixin, View):
     @response_schema(PlayerSchema, 200)
     async def put(self):
         """View, позволяющее положить изменить баланс игрока"""
-        try:
-            data = await self.request.json()
-        except JSONDecodeError as e:
-            raise HTTPBadRequest from e
+        data = await self.request.json()
         username, amount = (
             data["username"],
             data["amount"],
         )
-        if username is None or amount is None:
-            raise HTTPBadRequest
-        try:
-            int(amount)
-        except Exception as e:
-            raise HTTPBadRequest from e
         try:
             await self.store.blackjack.top_up_balance(
-                username=username, amount=int(amount)
+                username=username, amount=amount
             )
         except PlayerNotFoundError as e:
             raise HTTPBadRequest from e
@@ -56,22 +41,22 @@ class MoneyRatingView(AuthRequiredMixin, View):
     с возможностью фильтрации по чату.
     """
 
-    @request_schema(ChatSchema)
+    @querystring_schema(ChatSchema)
     @response_schema(PlayersListSchema, 200)
     async def get(self):
-        params = self.request.rel_url.query
-        chat_id = None
+        # data = await self.request.json()
+        chat_id, num_players = None, None
         try:
-            chat_id = int(params["chat_id"])
-        except KeyError as e:
-            raise HTTPBadRequest from e
-        except ValueError:
+            chat_id = int(self.request.query["chat_id"])
+        except KeyError:
             pass
         try:
-            players = await self.store.blackjack.get_money_rating(chat_id)
-        except GameSessionNotFoundError as e:
-            raise HTTPBadRequest from e
-        players = sorted(players, key=lambda player: player.balance)
+            num_players = int(self.request.query["num_players"])
+        except KeyError:
+            pass
+        players = await self.store.blackjack.get_money_rating(
+            chat_id, num_players
+        )
         return json_response(
             data={
                 "players": [PlayerSchema().dump(player) for player in players]

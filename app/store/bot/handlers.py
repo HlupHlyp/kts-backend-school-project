@@ -202,7 +202,7 @@ async def get_card_handler(
     )
     if not participant.is_polling:
         return
-    cards = Cards.Schema().load(participant.right_hand)
+    cards = Cards.from_dict(participant.right_hand)
     card = get_card()
     await manager.send_message(
         text=f"{card}",
@@ -254,6 +254,10 @@ async def get_card_handler(
             participant=participant,
             status=ParticipantStatus.ASSEMBLED,
             session=session,
+        )
+        await session.commit()
+        game_session = await manager.blackjack.get_game_session_for_update(
+            chat_id=chat_id, session=session
         )
         try:
             await switch_poll_participant(
@@ -332,7 +336,7 @@ async def final_calculating(
     for participant in participants:
         await manager.send_message(
             text=f"{participant.player.username}: "
-            f"{Cards.Schema().load(participant.right_hand)} ",
+            f"{Cards.from_dict(participant.right_hand)} ",
             chat_id=game_session.chat_id,
         )
 
@@ -360,9 +364,9 @@ async def final_calculating(
         # Если не перебрал, то сравниваем стоимость карт каждого из игроков
         # На этом основании определяем выигрыш или проигрыш
         for participant in participants:
-            participant_cards_cost = (
-                Cards.Schema().load(participant.right_hand).get_cost()
-            )
+            participant_cards_cost = Cards.from_dict(
+                participant.right_hand
+            ).get_cost()
             if (
                 participant_cards_cost > dealer_cards_cost
                 and participant_cards_cost < 22
@@ -452,7 +456,7 @@ async def stop_handler(
 async def dealer_finishing(
     manager: "BotManager", game_session: GameSessionModel
 ) -> Cards:
-    dealer_cards = Cards.Schema().load(game_session.dealer_cards)
+    dealer_cards = Cards.from_dict(game_session.dealer_cards)
     """Вынес отдельный handler для добора дилером карт"""
     await manager.send_message(
         text="Ход дилера:",

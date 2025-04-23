@@ -1,5 +1,4 @@
 import enum
-import typing
 from dataclasses import field
 
 from marshmallow_dataclass import dataclass
@@ -76,13 +75,14 @@ class Cards(Base):
     def to_dict(self) -> dict:
         return Cards.Schema().dump(self)
 
-    def from_dict(self, cards: dict) -> typing.Self:
+    @classmethod
+    def from_dict(cls, cards: dict) -> "Cards":
         return Cards.Schema().load(cards)
 
     def __str__(self):
         message = ""
         for card in self.cards:
-            message += f"{card.name.value}{card.suit.value}"
+            message += f"{card}"
             message += "  "
         message += f"(~{self.get_cost()})"
         return message
@@ -98,4 +98,5 @@ class Cards(Base):
             cost += card.weight
         while cost > 21 and ace_num > 0:
             cost -= 10
+            ace_num -= 1
         return cost
