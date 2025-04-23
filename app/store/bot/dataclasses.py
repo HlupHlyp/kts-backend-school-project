@@ -1,4 +1,5 @@
 import enum
+import typing
 from dataclasses import field
 
 from marshmallow_dataclass import dataclass
@@ -75,7 +76,7 @@ class Cards(Base):
     def to_dict(self) -> dict:
         return Cards.Schema().dump(self)
 
-    def from_dict(self, cards: dict) -> "Cards":
+    def from_dict(self, cards: dict) -> typing.Self:
         return Cards.Schema().load(cards)
 
     def __str__(self):
@@ -87,3 +88,13 @@ class Cards(Base):
 
     def add_card(self, card: Card) -> None:
         self.cards.append(card)
+
+    def get_cost(self) -> int:
+        ace_num, cost = 0, 0
+        for card in self.cards:
+            if card.name == CardName.ACE:
+                ace_num += 1
+            cost += card.weight
+        while cost > 21 and ace_num > 0:
+            cost -= 10
+        return cost

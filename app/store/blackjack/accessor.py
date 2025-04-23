@@ -98,7 +98,7 @@ class BlackjackAccessor(BaseAccessor):
         )
 
     async def get_or_create_player(
-        self, tg_id: int, session: AsyncSession, username: str
+        self, session: AsyncSession, tg_id: int, username: str
     ) -> None:
         player = await self.get_player_by_tg_id(tg_id=tg_id, session=session)
         if player is None:
@@ -109,7 +109,7 @@ class BlackjackAccessor(BaseAccessor):
         return player
 
     async def get_participant_by_tg_and_chat_id(
-        self, tg_id: int, chat_id: int, session: AsyncSession
+        self, session: AsyncSession, tg_id: int, chat_id: int
     ) -> ParticipantModel | None:
         player = await self.get_player_by_tg_id(tg_id=tg_id, session=session)
         if player is None:
@@ -127,7 +127,7 @@ class BlackjackAccessor(BaseAccessor):
         )
 
     async def get_or_create_participant(
-        self, tg_id: int, username: str, chat_id: int, session: AsyncSession
+        self, session: AsyncSession, tg_id: int, username: str, chat_id: int
     ) -> ParticipantModel | None:
         participant = await self.get_participant_by_tg_and_chat_id(
             session=session, tg_id=tg_id, chat_id=chat_id
@@ -172,9 +172,9 @@ class BlackjackAccessor(BaseAccessor):
 
     async def set_participant_status(
         self,
+        session: AsyncSession,
         participant: ParticipantModel,
         status: ParticipantStatus,
-        session: AsyncSession,
     ) -> None:
         result = await session.execute(
             update(ParticipantModel)
@@ -185,7 +185,7 @@ class BlackjackAccessor(BaseAccessor):
             raise ParticipantNotFoundError
 
     async def get_participant_for_update(
-        self, chat_id: int, tg_id: int, session: AsyncSession
+        self, session: AsyncSession, chat_id: int, tg_id: int
     ) -> ParticipantModel:
         player = await self.get_player_by_tg_id(tg_id=tg_id, session=session)
         if player is None:
@@ -209,7 +209,7 @@ class BlackjackAccessor(BaseAccessor):
         return result
 
     async def set_participant_bet(
-        self, participant: ParticipantModel, bet: int, session: AsyncSession
+        self, session: AsyncSession, participant: ParticipantModel, bet: int
     ) -> None:
         result = await session.execute(
             update(ParticipantModel)
@@ -227,7 +227,9 @@ class BlackjackAccessor(BaseAccessor):
             raise PlayerNotFoundError
 
     async def is_participants_gathered(
-        self, game_session: GameSessionModel, session: AsyncSession
+        self,
+        session: AsyncSession,
+        game_session: GameSessionModel,
     ) -> bool:
         expected_users_num = game_session.num_users
         num_participants = await session.scalar(
@@ -239,7 +241,7 @@ class BlackjackAccessor(BaseAccessor):
         return expected_users_num == num_participants
 
     async def set_participant_cards(
-        self, participant: ParticipantModel, cards: Cards, session: AsyncSession
+        self, session: AsyncSession, participant: ParticipantModel, cards: Cards
     ) -> None:
         result = await session.execute(
             update(ParticipantModel)
@@ -262,7 +264,7 @@ class BlackjackAccessor(BaseAccessor):
         )
 
     async def switch_poll_participant(
-        self, game_session: GameSessionStatus, session: AsyncSession
+        self, session: AsyncSession, game_session: GameSessionStatus
     ) -> ParticipantModel:
         participants = await self.get_participants_for_update(
             session=session, game_session=game_session
@@ -284,7 +286,7 @@ class BlackjackAccessor(BaseAccessor):
             return new_poll_participant
 
     async def change_balance_on_bet_amount(
-        self, participant: ParticipantModel, session: AsyncSession, coef: int
+        self, session: AsyncSession, participant: ParticipantModel, coef: int
     ) -> None:
         result = await session.execute(
             update(PlayerModel)

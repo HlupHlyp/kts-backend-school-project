@@ -83,6 +83,10 @@ class ParticipantModel(BaseModel):
         ),
     )
 
+    @property
+    def is_polling(self):
+        return self.status == ParticipantStatus.POLLING
+
 
 class PlayerModel(BaseModel):
     __tablename__ = "players"

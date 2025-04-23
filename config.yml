@@ -10,4 +10,5 @@ database:
   driver: postgresql+asyncpg
 bot:
   token: 6893332938:AAEvs3DyR1-nL2b_Xzxvgf821oA_CAc1T6k
+  num_workers: 3
 

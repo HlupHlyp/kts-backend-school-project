@@ -65,6 +65,7 @@ class BotManager(BaseAccessor):
                 "chat_id": chat_id,
                 "text": text,
                 "reply_markup": {"inline_keyboard": [[]]},
+                "cache_time": 1,
             }
         async with self.http_session.post(url, json=payload) as resp:
             res_dict = await resp.json()
@@ -105,7 +106,8 @@ class BotManager(BaseAccessor):
     def start(self):
         self.tg_api.logger.info("start working")
         self.worker_tasks = [
-            asyncio.create_task(self._worker()) for _ in range(NUM_WORKERS)
+            asyncio.create_task(self._worker())
+            for _ in range(self.app.config.bot.num_workers)
         ]
 
     async def disconnect(self, app: "Application") -> None:

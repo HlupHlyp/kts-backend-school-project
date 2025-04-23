@@ -10,6 +10,7 @@ if typing.TYPE_CHECKING:
 @dataclass
 class BotConfig:
     token: str
+    num_workers: int
 
 
 @dataclass
