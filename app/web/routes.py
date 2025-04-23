@@ -1,9 +1,8 @@
 from aiohttp.web_app import Application
+from app.admin.routes import setup_routes as admin_setup_routes
+from app.blackjack.routes import setup_routes as blackjack_setup_routes
 
-__all__ = ("setup_routes",)
 
-
-def setup_routes(application: Application):
-    import app.users.routes
-
-    app.users.routes.register_urls(application)
+def setup_routes(app: Application):
+    admin_setup_routes(app)
+    blackjack_setup_routes(app)

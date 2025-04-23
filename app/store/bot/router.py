@@ -68,14 +68,15 @@ class BotRouter:
                 command = str(update.message.text).split("/")[1]
                 log = f"Команда: {command}"
                 self.manager.logger.info(log)
-                try:
-                    handler = self.command_routes[command]
-                except KeyError as e:
-                    raise CommandRouteNotFoundError(command) from e
-                else:
-                    log = f"Хэндлер: {handler}"
-                    self.manager.logger.info(log)
-                    await handler(self.manager, update, session)
+                if command in [item.value for item in Command]:
+                    try:
+                        handler = self.command_routes[command]
+                    except Exception as e:
+                        raise CommandRouteNotFoundError(command) from e
+                    else:
+                        log = f"Хэндлер: {handler}"
+                        self.manager.logger.info(log)
+                        await handler(self.manager, update, session)
         elif update.callback_query is not None:
             query = str(update.callback_query.data).split("/")[0]
             try:

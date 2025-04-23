@@ -59,13 +59,17 @@ class BotManager(BaseAccessor):
     ) -> SendMessageResponse | None:
         url, payload = self.app.store.tg_api.get_url("sendMessage"), None
         if markup:
-            payload = {"chat_id": chat_id, "text": text, "reply_markup": markup}
+            payload = {
+                "chat_id": chat_id,
+                "text": text,
+                "reply_markup": markup,
+                "cache_time": 0,
+            }
         else:
             payload = {
                 "chat_id": chat_id,
                 "text": text,
                 "reply_markup": {"inline_keyboard": [[]]},
-                "cache_time": 1,
             }
         async with self.http_session.post(url, json=payload) as resp:
             res_dict = await resp.json()

@@ -1,7 +1,7 @@
 from dataclasses import field
 from typing import ClassVar
 
-from marshmallow import Schema
+from marshmallow import EXCLUDE, Schema
 from marshmallow_dataclass import dataclass
 
 
@@ -34,6 +34,7 @@ class MessageFrom:
     last_name: str | None = None
     username: str | None = None
     chat: Chat | None = None
+    is_premium: bool | None = None
 
 
 @dataclass
@@ -52,6 +53,9 @@ class Button:
 @dataclass
 class ReplyMarkup:
     inline_keyboard: list[list[Button]]
+
+    class Meta:
+        unknown = EXCLUDE
 
 
 @dataclass
@@ -127,6 +131,9 @@ class NewParticipant:
     last_name: str | None = None
     language_code: str | None = None
 
+    class Meta:
+        unknown = EXCLUDE
+
 
 @dataclass
 class Reply2Message:
@@ -135,6 +142,9 @@ class Reply2Message:
     chat: Chat
     date: int
     text: str | None = None
+
+    class Meta:
+        unknown = EXCLUDE
 
 
 @dataclass
@@ -161,6 +171,9 @@ class Message:
     left_chat_member: NewParticipant | None = None
     edit_date: int | None = None
     reply_to_message: Reply2Message | None = None
+
+    class Meta:
+        unknown = EXCLUDE
 
 
 @dataclass

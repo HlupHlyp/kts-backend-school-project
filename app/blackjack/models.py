@@ -99,3 +99,10 @@ class PlayerModel(BaseModel):
         "ParticipantModel",
         back_populates="player",
     )
+
+
+class AdminModel(BaseModel):
+    __tablename__ = "admins"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(unique=True)
+    password: Mapped[str] = mapped_column()

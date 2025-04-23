@@ -27,9 +27,9 @@ class ReplyTemplate(enum.StrEnum):
     GET_CARD_OR_ENOUGH = "GET_CARD_OR_ENOUGH"
 
 
-JACK_COEF = 2
-WIN_COEF = 1
-LOSS_COEF = -1
+JACK_COEF = 3
+WIN_COEF = 2
+LOSS_COEF = 0
 
 
 CARDS_WEIGHTS: dict[CardName, int] = {
@@ -100,11 +100,13 @@ async def players_num_handler(
             status=GameSessionStatus.WAITING_FOR_USERS,
             session=session,
         )
+        await session.commit()
         await manager.send_message(
             chat_id=chat_id, text=f"Число участников: {num_users}"
         )
         await manager.send_reply(chat_id=chat_id, reply_name=reply_name)
-    await session.commit()
+    else:
+        await session.commit()
 
 
 async def bet_handler(
@@ -137,7 +139,8 @@ async def bet_handler(
     )
     await manager.send_message(
         chat_id=chat_id,
-        text=f" {participant.player.username} поставил: {bet}🟡",
+        text=f" {participant.player.username} поставил: {bet}🟡 "
+        f"(баланс: {participant.player.balance})",
     )
     await session.commit()
     enough_gathered = await manager.blackjack.is_participants_gathered(
@@ -186,7 +189,6 @@ async def bet_handler(
     await switch_poll_participant(
         manager=manager, game_session=game_session, session=session
     )
-    await session.commit()
 
 
 async def get_card_handler(
@@ -234,7 +236,10 @@ async def get_card_handler(
                 manager=manager, game_session=game_session, session=session
             )
     elif cards_cost == 21:
-        manager.send_message(
+        game_session = await manager.blackjack.get_game_session_for_update(
+            chat_id=chat_id, session=session
+        )
+        await manager.send_message(
             text=f"{participant.player.username} у тебя BlackJack",
             chat_id=chat_id,
         )
@@ -245,6 +250,19 @@ async def get_card_handler(
             game_session=game_session,
             coef=JACK_COEF,
         )
+        await manager.blackjack.set_participant_status(
+            participant=participant,
+            status=ParticipantStatus.ASSEMBLED,
+            session=session,
+        )
+        try:
+            await switch_poll_participant(
+                manager=manager, game_session=game_session, session=session
+            )
+        except NoActiveParticipantsError:
+            await final_calculating(
+                manager=manager, game_session=game_session, session=session
+            )
     await session.commit()
 
 
@@ -263,6 +281,7 @@ async def enough_handler(
         status=ParticipantStatus.ASSEMBLED,
         session=session,
     )
+    await session.commit()
     game_session = await manager.blackjack.get_game_session_for_update(
         chat_id=chat_id, session=session
     )
@@ -296,34 +315,36 @@ async def switch_poll_participant(
 async def final_calculating(
     manager: "BotManager", game_session: GameSessionModel, session: AsyncSession
 ) -> None:
-    manager.logger.info("final_calculating")
-    dealer_cards = Cards.Schema().load(game_session.dealer_cards)
-    dealer_cards_cost = dealer_finishing(
-        manager=manager, game_session=game_session
-    )
     participants = await manager.blackjack.get_participants_for_update(
         game_session=game_session, session=session
     )
+    manager.logger.info("final_calculating")
+    dealer_cards = await dealer_finishing(
+        manager=manager, game_session=game_session
+    )
+    dealer_cards_cost = dealer_cards.get_cost()
+
     await manager.send_message(
         text="СОБРАННЫЕ СЕТЫ",
         chat_id=game_session.chat_id,
     )
+
     for participant in participants:
         await manager.send_message(
-            text=f"{participant.player.username}:"
-            f"{Cards.Schema().load(participant.right_hand)}",
+            text=f"{participant.player.username}: "
+            f"{Cards.Schema().load(participant.right_hand)} ",
             chat_id=game_session.chat_id,
         )
-    await session.commit()
+
     participants = await manager.blackjack.get_participants_for_update(
         game_session=game_session, session=session
     )
+
     await manager.send_message(
         text=f"Дилер: {dealer_cards}",
         chat_id=game_session.chat_id,
     )
     # Проверяем не перербрал ли дилер
-    dealer_cards_cost = dealer_cards.get_cost()
 
     if dealer_cards_cost > 21:
         # Если перебрал, то просто раздаем вознаграждения
@@ -334,10 +355,6 @@ async def final_calculating(
                 game_session=game_session,
                 session=session,
                 coef=WIN_COEF,
-            )
-            await manager.send_message(
-                text=f"{participant.player.username}: +{participant.bet}",
-                chat_id=game_session.chat_id,
             )
     else:
         # Если не перебрал, то сравниваем стоимость карт каждого из игроков
@@ -390,11 +407,16 @@ async def change_balance_on_bet_amount(
         await manager.blackjack.change_balance_on_bet_amount(
             participant=participant, session=session, coef=coef
         )
-    sign = "+"
-    if coef < 0:
-        sign = "-"
+    sign = ""
+    action = participant.bet * coef
+    if coef > 0:
+        sign = "+"
+    elif coef == 0:
+        action = participant.bet * -1
+
     await manager.send_message(
-        text=f"{participant.player.username}: {sign}{participant.bet}",
+        text=f"{participant.player.username}: {sign}{action} "
+        f"(баланс: {participant.player.balance})",
         chat_id=game_session.chat_id,
     )
 
@@ -429,7 +451,7 @@ async def stop_handler(
 
 async def dealer_finishing(
     manager: "BotManager", game_session: GameSessionModel
-) -> int:
+) -> Cards:
     dealer_cards = Cards.Schema().load(game_session.dealer_cards)
     await manager.send_message(
         text="Ход дилера:",
@@ -449,4 +471,4 @@ async def dealer_finishing(
             text="Дилер немного перебрал",
             chat_id=game_session.chat_id,
         )
-    return dealer_cards.get_cost()
+    return dealer_cards

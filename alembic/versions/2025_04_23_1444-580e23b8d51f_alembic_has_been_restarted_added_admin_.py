@@ -1,8 +1,8 @@
-"""DB has been restarted. Tables have been created
+"""Alembic has been restarted. Added admin table
 
-Revision ID: 9c68aa2ead77
+Revision ID: 580e23b8d51f
 Revises: 
-Create Date: 2025-04-20 14:09:50.722774
+Create Date: 2025-04-23 14:44:10.849037
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '9c68aa2ead77'
+revision: str = '580e23b8d51f'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

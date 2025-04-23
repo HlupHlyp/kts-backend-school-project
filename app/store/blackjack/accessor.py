@@ -202,7 +202,7 @@ class BlackjackAccessor(BaseAccessor):
                 ParticipantModel.game_session_id == game_session.id,
             )
             .options(selectinload(ParticipantModel.player))
-            .with_for_update()
+            .with_for_update(of=ParticipantModel)
         )
         if result is None:
             raise ParticipantNotFoundError
@@ -295,3 +295,31 @@ class BlackjackAccessor(BaseAccessor):
         )
         if result.rowcount == 0:
             raise PlayerNotFoundError(participant.player.tg_id)
+
+    async def top_up_balance(self, username: str, amount: int) -> None:
+        async with self.app.database.session() as session:
+            result = await session.execute(
+                update(PlayerModel)
+                .where(PlayerModel.username == username)
+                .values(balance=PlayerModel.balance + amount)
+            )
+            if result.rowcount == 0:
+                raise PlayerNotFoundError(None)
+
+    async def get_money_rating(
+        self, chat_id: int | None = None
+    ) -> list[PlayerModel]:
+        async with self.app.database.session() as session:
+            if chat_id is None:
+                return await session.scalars(select(PlayerModel))
+            game_session = await self.get_game_session_by_chat(
+                session=session, chat_id=chat_id
+            )
+            if game_session is None:
+                raise GameSessionNotFoundError(chat_id)
+            participants = await session.scalars(
+                select(ParticipantModel)
+                .where(ParticipantModel.game_session_id == game_session.id)
+                .options(joinedload(ParticipantModel.player))
+            )
+            return [participant.player for participant in participants]

@@ -54,7 +54,7 @@ class CardName(enum.StrEnum):
     NINE = "9"
     TEN = "10"
     KING = "Король"
-    QUEEN = "Королева"
+    QUEEN = "Дама"
     JACK = "Валет"
     ACE = "Туз"
 
@@ -84,6 +84,7 @@ class Cards(Base):
         for card in self.cards:
             message += f"{card.name.value}{card.suit.value}"
             message += "  "
+        message += f"(~{self.get_cost()})"
         return message
 
     def add_card(self, card: Card) -> None:
