@@ -16,6 +16,9 @@ from app.store.bot.handlers import (
     players_num_handler,
     start_handler,
     stop_handler,
+    get_balances_handler,
+    get_prev_session_handler,
+    get_rules_handler,
 )
 from app.store.bot.router import BotRouter, Command, Query
 from app.store.tg_api.dataclasses import SendMessageResponse
@@ -42,6 +45,24 @@ class BotManager(BaseAccessor):
         self.router = BotRouter(self)
         self.router.create_command_route(Command.START, start_handler)
         self.router.create_command_route(Command.STOP, stop_handler)
+        self.router.create_command_route(Command.SHORT_START, start_handler)
+        self.router.create_command_route(Command.SHORT_STOP, stop_handler)
+        self.router.create_command_route(
+            Command.GET_BALANCES, get_balances_handler
+        )
+        self.router.create_command_route(
+            Command.SHORT_GET_BALANCES, get_balances_handler
+        )
+        self.router.create_command_route(
+            Command.GET_PREV_SESSION, get_prev_session_handler
+        )
+        self.router.create_command_route(
+            Command.SHORT_GET_PREV_SESSION, get_prev_session_handler
+        )
+        self.router.create_command_route(Command.GET_RULES, get_rules_handler)
+        self.router.create_command_route(
+            Command.SHORT_GET_RULES, get_rules_handler
+        )
         self.router.create_query_route(Query.NUM_PLAYERS, players_num_handler)
         self.router.create_query_route(Query.MAKE_A_BET, bet_handler)
         self.router.create_query_route(Query.GET_CARD, get_card_handler)
@@ -57,13 +78,14 @@ class BotManager(BaseAccessor):
         text: str,
         markup: dict | None = None,
     ) -> SendMessageResponse | None:
+        await asyncio.sleep(0.1)
         url, payload = self.app.store.tg_api.get_url("sendMessage"), None
         if markup:
             payload = {
                 "chat_id": chat_id,
                 "text": text,
                 "reply_markup": markup,
-                "cache_time": 0,
+                "cache_time": 2,
             }
         else:
             payload = {

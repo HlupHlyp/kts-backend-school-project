@@ -39,3 +39,9 @@ class QueryRouteNotFoundError(BaseError):
 class NoActiveParticipantsError(BaseError):
     def __init__(self) -> None:
         self.msg = "Активные игроки закончились"
+
+
+class NoPlayerNameError(BaseError):
+    def __init__(self) -> None:
+        self.msg = "Вы не задали firstname и username."
+        "Для создания игрока должен присутствовать хотя бы один из параметров"

@@ -24,6 +24,14 @@ class Query(enum.StrEnum):
 class Command(enum.StrEnum):
     START = "start@SC17854_bot"
     STOP = "stop@SC17854_bot"
+    SHORT_START = "start"
+    SHORT_STOP = "stop"
+    GET_BALANCES = "get_balances@SC17854_bot"
+    SHORT_GET_BALANCES = "get_balances"
+    GET_PREV_SESSION = "get_prev_session@SC17854_bot"
+    SHORT_GET_PREV_SESSION = "get_prev_session"
+    GET_RULES = "get_rules@SC17854_bot"
+    SHORT_GET_RULES = "get_rules"
 
 
 class Handler(typing.Protocol):

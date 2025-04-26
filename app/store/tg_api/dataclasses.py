@@ -241,7 +241,7 @@ class UpdateObj:
         return None
 
     @property
-    def first_name(self) -> str:
+    def firstname(self) -> str:
         if self.message is not None:
             return self.message.from_.first_name
         if self.callback_query is not None:

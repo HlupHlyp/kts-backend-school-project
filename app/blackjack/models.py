@@ -5,6 +5,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     UniqueConstraint,
+    CheckConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -45,6 +46,7 @@ class GameSessionModel(BaseModel):
         back_populates="game_session",
     )
     dealer_cards: Mapped[dict] = mapped_column(JSONB, default={})
+    is_stopped: Mapped[bool] = mapped_column(default=False)
 
 
 class ParticipantModel(BaseModel):
@@ -93,11 +95,23 @@ class PlayerModel(BaseModel):
     id: Mapped[int] = mapped_column(primary_key=True)
     balance: Mapped[int] = mapped_column()
     tg_id: Mapped[int] = mapped_column(BigInteger, index=True, unique=True)
-    username: Mapped[str] = mapped_column(unique=True)
+    username: Mapped[str | None] = mapped_column(unique=True, nullable=True)
+    firstname: Mapped[str | None] = mapped_column(nullable=True)
 
     participants: Mapped[list["ParticipantModel"]] = relationship(
         "ParticipantModel",
         back_populates="player",
+    )
+
+    @property
+    def name(self):
+        return self.username if self.username is not None else self.firstname
+
+    table_args = (
+        CheckConstraint(
+            "firstname is not null or username is not null  or bet < 0",
+            name="first_name or username",
+        ),
     )
 
 
