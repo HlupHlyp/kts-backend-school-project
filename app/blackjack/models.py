@@ -2,10 +2,10 @@ import enum
 
 from sqlalchemy import (
     BigInteger,
+    CheckConstraint,
     Enum,
     ForeignKey,
     UniqueConstraint,
-    CheckConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -88,6 +88,14 @@ class ParticipantModel(BaseModel):
     @property
     def is_polling(self):
         return self.status == ParticipantStatus.POLLING
+
+    @property
+    def is_assembled(self):
+        return self.status == ParticipantStatus.ASSEMBLED
+
+    @property
+    def is_active(self):
+        return self.status == ParticipantStatus.ACTIVE
 
 
 class PlayerModel(BaseModel):

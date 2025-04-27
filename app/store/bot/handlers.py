@@ -166,7 +166,14 @@ async def bet_handler(
 
     if not (enough_gathered and GameSessionStatus.WAITING_FOR_USERS):
         return
+    await primary_cards_distributing(
+        manager=manager, game_session=game_session, session=session
+    )
 
+
+async def primary_cards_distributing(
+    manager: "BotManager", game_session: GameSessionModel, session: AsyncSession
+) -> None:
     messages = "Маршрутка полная. Поехали!"
     participants = await manager.blackjack.get_participants_for_update(
         session=session, game_session=game_session
@@ -195,12 +202,11 @@ async def bet_handler(
                     status=ParticipantStatus.ASSEMBLED,
                     session=session,
                 )
-
     cards = Cards([get_card(), get_card()])
     messages += f"\n\nДилер: \n{cards}"
     await manager.send_message(
         text=messages,
-        chat_id=chat_id,
+        chat_id=game_session.chat_id,
     )
     await manager.blackjack.set_game_session_status(
         game_session=game_session,
@@ -584,9 +590,74 @@ async def continue_handler(
     game_session = await manager.blackjack.get_or_create_game_session(
         session=session, chat_id=update.chat_id
     )
+    await manager.blackjack.set_game_session_stopped(
+        session=session, game_session=game_session, is_stopped=False
+    )
     if game_session.status == GameSessionStatus.SLEEPING:
         await manager.send_message(
-            text="Нечего продолжать",
+            text="Предыдущая сессия была завершена успешно. Нечего продолжать",
             chat_id=game_session.chat_id,
         )
-        return
+    elif game_session.status == GameSessionStatus.WAITING_FOR_NUM:
+        await manager.send_reply(
+            chat_id=game_session.chat_id,
+            reply_name=ReplyTemplate.PLAYER_NUM_SETTING,
+        )
+    elif game_session.status == GameSessionStatus.WAITING_FOR_USERS:
+        participants = list(
+            await manager.blackjack.get_participants_for_update(
+                session=session, game_session=game_session
+            )
+        )
+        if len(participants) < game_session.num_users:
+            bets = ""
+            for participant in participants:
+                bets += f"\n\n{participant.player.name} поставил: "
+                bets += f" {participant.bet}🟡 "
+            await manager.send_message(chat_id=game_session.chat_id, text=bets)
+            await manager.send_reply(
+                chat_id=game_session.chat_id,
+                reply_name=ReplyTemplate.INVITING,
+            )
+        else:
+            await primary_cards_distributing(
+                manager=manager, game_session=game_session, session=session
+            )
+    elif game_session.status == GameSessionStatus.POLLING:
+        participants = list(
+            await manager.blackjack.get_participants_for_update(
+                session=session, game_session=game_session
+            )
+        )
+        assembled_participants = [
+            participant
+            for participant in participants
+            if participant.is_assembled
+        ]
+        polling_participant = [
+            participant
+            for participant in participants
+            if participant.is_polling
+        ]
+        messages = "СОБРАННЫЕ СЕТЫ"
+        if polling_participant != []:
+            await manager.send_message(
+                text=f"{polling_participant[0].player.name}, ваш ход",
+                chat_id=game_session.chat_id,
+            )
+            await manager.send_reply(
+                ReplyTemplate.GET_CARD_OR_ENOUGH, chat_id=game_session.chat_id
+            )
+        elif len(assembled_participants) == len(participants):
+            await final_calculating(
+                manager=manager, session=session, game_session=game_session
+            )
+        else:
+            await switch_poll_participant(
+                manager=manager, game_session=game_session, session=session
+            )
+        for participant in assembled_participants:
+            messages += f" \n\n{participant.player.name}: "
+            messages += f"{Cards.from_dict(participant.right_hand)} "
+
+    await session.commit()

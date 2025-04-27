@@ -11,14 +11,15 @@ from app.store.bot.dataclasses import Markup, ReplyTemplates
 from app.store.bot.exceptions import ReplyTemplateNotFoundError
 from app.store.bot.handlers import (
     bet_handler,
+    continue_handler,
     enough_handler,
+    get_balances_handler,
     get_card_handler,
+    get_prev_session_handler,
+    get_rules_handler,
     players_num_handler,
     start_handler,
     stop_handler,
-    get_balances_handler,
-    get_prev_session_handler,
-    get_rules_handler,
 )
 from app.store.bot.router import BotRouter, Command, Query
 from app.store.tg_api.dataclasses import SendMessageResponse
@@ -62,6 +63,10 @@ class BotManager(BaseAccessor):
         self.router.create_command_route(Command.GET_RULES, get_rules_handler)
         self.router.create_command_route(
             Command.SHORT_GET_RULES, get_rules_handler
+        )
+        self.router.create_command_route(Command.CONTINUE, continue_handler)
+        self.router.create_command_route(
+            Command.SHORT_CONTINUE, continue_handler
         )
         self.router.create_query_route(Query.NUM_PLAYERS, players_num_handler)
         self.router.create_query_route(Query.MAKE_A_BET, bet_handler)

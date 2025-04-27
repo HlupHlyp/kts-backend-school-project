@@ -32,6 +32,8 @@ class Command(enum.StrEnum):
     SHORT_GET_PREV_SESSION = "get_prev_session"
     GET_RULES = "get_rules@SC17854_bot"
     SHORT_GET_RULES = "get_rules"
+    CONTINUE = "continue@SC17854_bot"
+    SHORT_CONTINUE = "continue"
 
 
 class Handler(typing.Protocol):

@@ -14,9 +14,9 @@ from app.store.bot.dataclasses import Cards
 from app.store.bot.exceptions import (
     GameSessionNotFoundError,
     NoActiveParticipantsError,
+    NoPlayerNameError,
     ParticipantNotFoundError,
     PlayerNotFoundError,
-    NoPlayerNameError,
 )
 
 DEFAULT_BALANCE = 10000
