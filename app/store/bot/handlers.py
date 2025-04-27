@@ -28,7 +28,6 @@ class ReplyTemplate(enum.StrEnum):
     STOPPING_GAME = "STOPPING_GAME"
     SESSION_ALREADY_STARTED = "SESSION_ALREADY_STARTED"
     GET_CARD_OR_ENOUGH = "GET_CARD_OR_ENOUGH"
-    GET_RULES = "GET_RULES"
 
 
 JACK_COEF = 2
@@ -203,7 +202,7 @@ async def primary_cards_distributing(
                     session=session,
                 )
     cards = Cards([get_card(), get_card()])
-    messages += f"\n\nДилер: \n{cards}"
+    messages += f"\n\n🤵🏻‍♂️ДИЛЕР: {cards}"
     await manager.send_message(
         text=messages,
         chat_id=game_session.chat_id,
@@ -357,7 +356,7 @@ async def final_calculating(
         manager=manager, session=session, game_session=game_session
     )
     dealer_cards_cost = dealer_cards.get_cost()
-    messages = "СОБРАННЫЕ СЕТЫ"
+    messages = "🂡СОБРАННЫЕ СЕТЫ"
 
     for participant in participants:
         messages += f" \n\n{participant.player.name}: "
@@ -366,7 +365,7 @@ async def final_calculating(
     participants = await manager.blackjack.get_participants_for_update(
         game_session=game_session, session=session
     )
-    messages += f"\n \nДилер: {dealer_cards}"
+    messages += f"\n\n🤵🏻‍♂️ДИЛЕР: {dealer_cards}"
     await manager.send_message(
         text=messages,
         chat_id=game_session.chat_id,
@@ -474,7 +473,7 @@ async def dealer_finishing(
 ) -> Cards:
     dealer_cards = Cards.from_dict(game_session.dealer_cards)
     """Вынес отдельный handler для добора дилером карт"""
-    messages = "Ход дилера: \n\n"
+    messages = "ХОД ДИЛЕРА: \n\n"
 
     # Дораздаем карты дилеру
     while dealer_cards.get_cost() < 17:
@@ -483,7 +482,7 @@ async def dealer_finishing(
         dealer_cards.add_card(card)
 
     if dealer_cards.get_cost() > 21:
-        messages += "\n\nДилер немного перебрал"
+        messages += "\n\nДИЛЕР немного перебрал"
 
     await manager.blackjack.set_dealer_cards(
         game_session=game_session,
@@ -545,9 +544,9 @@ async def get_prev_session_handler(
     ):
         dealer_cards = Cards.from_dict(game_session.dealer_cards)
         dealer_cards_cost = dealer_cards.get_cost()
-        bets = "СТАВКИ"
-        cards = f"\n\nСОБРАННЫЕ СЕТЫ\n\nДилер: {dealer_cards}"
-        results = "\n\nРЕЗУЛЬТАТЫ"
+        bets = "🎰СТАВКИ"
+        cards = f"\n\n🂡СОБРАННЫЕ СЕТЫ\n\n🤵🏻‍♂️ДИЛЕР: {dealer_cards}"
+        results = "\n\n📊РЕЗУЛЬТАТЫ"
         for participant in participants:
             participant_cards, coef = (
                 Cards.from_dict(participant.right_hand),
@@ -579,9 +578,30 @@ async def get_prev_session_handler(
 async def get_rules_handler(
     manager: "BotManager", update: UpdateObj, session: AsyncSession
 ) -> None:
-    await manager.send_reply(
-        reply_name=ReplyTemplate.GET_RULES, chat_id=update.chat_id
+    rules = (
+        "📋ПРАВИЛА"
+        "\n\n⚖️ПОДСЧЕТ ОЧКОВ:"
+        "\n\n1. Если игроку выпадает BlackJack, то он сразу получает "
+        "удвоенную ставку, а затем участвует в подсчете вместе со всеми"
+        "\n\n2. Если дилер перебрал, то все игроки выигрывают одну ставку"
+        "\n\n3. Если у дилера BlackJack, то все игроки проигрывают одну ставку"
+        "\n\n4. Если у игрока и дилера кол-ва очков одинаковы и меньше 22, "
+        "то игрок проигрывает одну ставку"
+        "\n\n</>КОМАНДЫ:"
+        "\n\n1. get_rules - выводит правила игры"
+        "\n\n2. get_prev_session - выводит информацию о предыдущей успешно "
+        "завершенной сессии (если она не прервана или не начата новая)"
+        "удвоенную ставку, а затем участвует в подсчете вместе со всеми"
+        "\n\n3. get_balances - выводит балансы игроков, которые принимали "
+        "участие хотя бы в одной игре чата"
+        "\n\n4. start - перезапускает сессию или создает при ее отсутствии"
+        "\n\n5. stop - прерывает сессию для ее перезапускаа или последующего "
+        "возобновления"
+        "\n\n6. continue - возобновляет прерванную сессиюЕсли у дилера BlacJack"
+        ", то все игроки проигрывают одну ставку"
     )
+
+    await manager.send_message(text=rules, chat_id=update.chat_id)
 
 
 async def continue_handler(
@@ -639,7 +659,7 @@ async def continue_handler(
             for participant in participants
             if participant.is_polling
         ]
-        messages = "СОБРАННЫЕ СЕТЫ"
+        messages = "🂡СОБРАННЫЕ СЕТЫ"
         if polling_participant != []:
             await manager.send_message(
                 text=f"{polling_participant[0].player.name}, ваш ход",
