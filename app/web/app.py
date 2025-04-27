@@ -3,11 +3,16 @@ from aiohttp.web import (
     Request as AiohttpRequest,
     View as AiohttpView,
 )
+from aiohttp_apispec import setup_aiohttp_apispec
+from aiohttp_session import setup as session_setup
+from aiohttp_session.cookie_storage import EncryptedCookieStorage
 
 from app.store import Store, setup_store
 from app.store.database.database import Database
 from app.web.config import Config, setup_config
 from app.web.logger import setup_logging
+from app.web.middlewares import setup_middlewares
+from app.web.routes import setup_routes
 
 
 class Application(AiohttpApplication):
@@ -46,5 +51,14 @@ app = Application()
 def setup_app(config_path: str) -> Application:
     setup_logging(app)
     setup_config(app, config_path)
+    session_setup(
+        app, EncryptedCookieStorage(b"Thirty  two  length  bytes  key.")
+    )
+    setup_routes(app)
+    setup_aiohttp_apispec(
+        app, title="Tg JackBlack Bot", url="/docs/json", swagger_path="/docs"
+    )
+    setup_middlewares(app)
     setup_store(app)
+
     return app

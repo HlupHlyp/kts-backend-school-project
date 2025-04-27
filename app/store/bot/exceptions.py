@@ -34,3 +34,14 @@ class CommandRouteNotFoundError(BaseError):
 class QueryRouteNotFoundError(BaseError):
     def __init__(self, command_name: str) -> None:
         self.msg = f"Обработчик для query: {command_name} не найден"
+
+
+class NoActiveParticipantsError(BaseError):
+    def __init__(self) -> None:
+        self.msg = "Активные игроки закончились"
+
+
+class NoPlayerNameError(BaseError):
+    def __init__(self) -> None:
+        self.msg = "Вы не задали firstname и username."
+        "Для создания игрока должен присутствовать хотя бы один из параметров"

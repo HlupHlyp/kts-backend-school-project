@@ -88,6 +88,37 @@
                     ]
                 }
             }
+        },
+        {
+            "name": "GET_CARD_OR_ENOUGH",
+            "content": {
+                "text": "Выберите действие:",
+                "markup": {
+                    "inline_keyboard": [
+                        [
+                            {
+                                "text": "Еще карту",
+                                "callback_data": "get_card/"
+                            },
+                            {
+                                "text": "Хватит",
+                                "callback_data": "enough/"
+                            }
+                        ]
+                    ]
+                }
+            }
+        },
+        {
+            "name": "GET_RULES",
+            "content": {
+                "text": "ПОДСЧЕТ ОЧКОВ:\n1.Если игроку выпадает BlackJack, то сразу получает удвоенную ставку, а затем участвует в подсчете вместе со всемиЗначит правил следующие ... Эмм, пока не придумал",
+                "markup": {
+                    "inline_keyboard": [
+                        []
+                    ]
+                }
+            }
         }
     ]
 }

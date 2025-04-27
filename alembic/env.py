@@ -6,7 +6,7 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config, create_async_engine
 from app.store.database.sqlalchemy_base import BaseModel
-from app.web.config import Config, DatabaseConfig
+from app.web.config import DatabaseConfig
 
 from alembic import context
 

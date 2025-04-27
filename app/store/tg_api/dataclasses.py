@@ -1,7 +1,7 @@
 from dataclasses import field
 from typing import ClassVar
 
-from marshmallow import Schema
+from marshmallow import EXCLUDE, Schema
 from marshmallow_dataclass import dataclass
 
 
@@ -34,6 +34,7 @@ class MessageFrom:
     last_name: str | None = None
     username: str | None = None
     chat: Chat | None = None
+    is_premium: bool | None = None
 
 
 @dataclass
@@ -52,6 +53,9 @@ class Button:
 @dataclass
 class ReplyMarkup:
     inline_keyboard: list[list[Button]]
+
+    class Meta:
+        unknown = EXCLUDE
 
 
 @dataclass
@@ -125,6 +129,10 @@ class NewParticipant:
     first_name: str
     username: str
     last_name: str | None = None
+    language_code: str | None = None
+
+    class Meta:
+        unknown = EXCLUDE
 
 
 @dataclass
@@ -134,6 +142,9 @@ class Reply2Message:
     chat: Chat
     date: int
     text: str | None = None
+
+    class Meta:
+        unknown = EXCLUDE
 
 
 @dataclass
@@ -161,6 +172,32 @@ class Message:
     edit_date: int | None = None
     reply_to_message: Reply2Message | None = None
 
+    class Meta:
+        unknown = EXCLUDE
+
+
+@dataclass
+class User:
+    id: int
+    is_bot: bool
+    first_name: str
+    username: str
+
+
+@dataclass
+class ChatMember:
+    user: User
+    status: str
+
+
+@dataclass
+class MyChatMember:
+    chat: Chat
+    from_: MessageFrom = field(metadata={"data_key": "from"})
+    date: int
+    new_chat_member: ChatMember
+    old_chat_member: ChatMember
+
 
 @dataclass
 class CallbackQuery:
@@ -177,6 +214,7 @@ class UpdateObj:
     message: Message | None = None
     edited_message: Message | None = None
     callback_query: CallbackQuery | None = None
+    my_chat_member: MyChatMember | None = None
 
     @property
     def chat_id(self) -> int:
@@ -203,7 +241,7 @@ class UpdateObj:
         return None
 
     @property
-    def first_name(self) -> str:
+    def firstname(self) -> str:
         if self.message is not None:
             return self.message.from_.first_name
         if self.callback_query is not None:

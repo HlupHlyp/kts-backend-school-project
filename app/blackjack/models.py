@@ -2,6 +2,7 @@ import enum
 
 from sqlalchemy import (
     BigInteger,
+    CheckConstraint,
     Enum,
     ForeignKey,
     UniqueConstraint,
@@ -45,6 +46,7 @@ class GameSessionModel(BaseModel):
         back_populates="game_session",
     )
     dealer_cards: Mapped[dict] = mapped_column(JSONB, default={})
+    is_stopped: Mapped[bool] = mapped_column(default=False)
 
 
 class ParticipantModel(BaseModel):
@@ -83,15 +85,50 @@ class ParticipantModel(BaseModel):
         ),
     )
 
+    @property
+    def is_polling(self):
+        return self.status == ParticipantStatus.POLLING
+
+    @property
+    def is_assembled(self):
+        return self.status == ParticipantStatus.ASSEMBLED
+
+    @property
+    def is_active(self):
+        return self.status == ParticipantStatus.ACTIVE
+
 
 class PlayerModel(BaseModel):
     __tablename__ = "players"
     id: Mapped[int] = mapped_column(primary_key=True)
     balance: Mapped[int] = mapped_column()
     tg_id: Mapped[int] = mapped_column(BigInteger, index=True, unique=True)
-    username: Mapped[str] = mapped_column(unique=True)
+    username: Mapped[str | None] = mapped_column(unique=True, nullable=True)
+    firstname: Mapped[str | None] = mapped_column(nullable=True)
 
     participants: Mapped[list["ParticipantModel"]] = relationship(
         "ParticipantModel",
         back_populates="player",
     )
+
+    @property
+    def name(self):
+        return self.username if self.username is not None else self.firstname
+
+    table_args = (
+        CheckConstraint(
+            "firstname is not null or username is not null  or bet < 0",
+            name="first_name or username",
+        ),
+    )
+
+
+class AdminModel(BaseModel):
+    """Пока поместил модельку админа сюда, поскольку в app.admin.models alembic
+    ее игнорирует
+    """
+
+    __tablename__ = "admins"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(unique=True)
+    password: Mapped[str] = mapped_column()

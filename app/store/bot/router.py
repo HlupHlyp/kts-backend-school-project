@@ -17,11 +17,23 @@ if typing.TYPE_CHECKING:
 class Query(enum.StrEnum):
     NUM_PLAYERS = "num_players"
     MAKE_A_BET = "make_a_bet"
+    GET_CARD = "get_card"
+    ENOUGH = "enough"
 
 
 class Command(enum.StrEnum):
     START = "start@SC17854_bot"
     STOP = "stop@SC17854_bot"
+    SHORT_START = "start"
+    SHORT_STOP = "stop"
+    GET_BALANCES = "get_balances@SC17854_bot"
+    SHORT_GET_BALANCES = "get_balances"
+    GET_PREV_SESSION = "get_prev_session@SC17854_bot"
+    SHORT_GET_PREV_SESSION = "get_prev_session"
+    GET_RULES = "get_rules@SC17854_bot"
+    SHORT_GET_RULES = "get_rules"
+    CONTINUE = "continue@SC17854_bot"
+    SHORT_CONTINUE = "continue"
 
 
 class Handler(typing.Protocol):
@@ -59,15 +71,21 @@ class BotRouter:
         # ищет route для него.
         # Если пришел callback, то просто ищет route.
         # Также здесь выделяются параметры
+        log = f"Объект в навигаторе: {update}"
+        self.manager.logger.info(log)
         if update.message is not None:
             if str(update.message.text).startswith("/"):
                 command = str(update.message.text).split("/")[1]
-                try:
-                    handler = self.command_routes[command]
-                except KeyError as e:
-                    raise CommandRouteNotFoundError(command) from e
-                else:
-                    await handler(self.manager, update, session)
+                self.manager.logger.info("Объект в навигаторе: %s", update)
+                if command in [item.value for item in Command]:
+                    try:
+                        handler = self.command_routes[command]
+                    except KeyError as e:
+                        raise CommandRouteNotFoundError(command) from e
+                    else:
+                        log = f"Хэндлер: {handler}"
+                        self.manager.logger.info(log)
+                        await handler(self.manager, update, session)
         elif update.callback_query is not None:
             query = str(update.callback_query.data).split("/")[0]
             try:

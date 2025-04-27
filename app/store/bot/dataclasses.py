@@ -53,7 +53,7 @@ class CardName(enum.StrEnum):
     NINE = "9"
     TEN = "10"
     KING = "Король"
-    QUEEN = "Королева"
+    QUEEN = "Дама"
     JACK = "Валет"
     ACE = "Туз"
 
@@ -64,13 +64,39 @@ class Card(Base):
     name: CardName
     weight: int
 
+    def __str__(self):
+        return f"{self.name.value}{self.suit.value}"
+
 
 @dataclass
 class Cards(Base):
     cards: list[Card] = field(default_factory=list)
 
     def to_dict(self) -> dict:
-        return Cards.Schema().dump(self.cards)
+        return Cards.Schema().dump(self)
 
-    def from_dict(self, cards: dict) -> "Cards":
+    @classmethod
+    def from_dict(cls, cards: dict) -> "Cards":
         return Cards.Schema().load(cards)
+
+    def __str__(self):
+        message = ""
+        for card in self.cards:
+            message += f"{card}"
+            message += "  "
+        message += f"(~{self.get_cost()})"
+        return message
+
+    def add_card(self, card: Card) -> None:
+        self.cards.append(card)
+
+    def get_cost(self) -> int:
+        ace_num, cost = 0, 0
+        for card in self.cards:
+            if card.name == CardName.ACE:
+                ace_num += 1
+            cost += card.weight
+        while cost > 21 and ace_num > 0:
+            cost -= 10
+            ace_num -= 1
+        return cost
